@@ -211,8 +211,7 @@
         const { Client, Account, Databases, Storage, ID, Query } = Appwrite;
         const client = new Client();
 
-        // --- CONFIGURAÇÃO CORRIGIDA ---
-        // Alterado para o endpoint NYC que aparece na sua imagem
+        // CONFIGURAÇÃO NYC
         const PROJECT_ID = '693b19f6002a7ae91448'; 
         
         client
@@ -223,7 +222,7 @@
         const db = new Databases(client);
         const storage = new Storage(client);
 
-        // IDs CONFIRMADOS NAS IMAGENS
+        // IDs
         const DB_ID = 'db_main';
         const COL_TERRENOS = 'col_terrenos';
         const COL_VENDAS = 'col_vendas';
@@ -248,12 +247,15 @@
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
             try {
-                await account.createEmailSession(email, pass);
+                // CORRIGIDO: createEmailPasswordSession
+                await account.createEmailPasswordSession(email, pass);
                 checkSession();
             } catch (error) {
                 try {
+                    // Cria conta e depois loga
                     await account.create(ID.unique(), email, pass);
-                    await account.createEmailSession(email, pass);
+                    // CORRIGIDO: createEmailPasswordSession
+                    await account.createEmailPasswordSession(email, pass);
                     checkSession();
                 } catch (ce) { 
                     document.getElementById('login-msg').innerText = "Error: " + error.message; 
@@ -275,7 +277,7 @@
 
                 renderTerrenos(); renderVendas(); updateDashboard();
             } catch (e) { 
-                alert("Error cargando datos. Verifique si la columna 'dados' fue creada en Appwrite."); 
+                alert("Error cargando datos."); 
                 console.error(e); 
             }
             document.getElementById('loader').classList.add('hidden');
@@ -462,8 +464,8 @@
             document.getElementById('kpi-disp').innerText = terrenos.filter(t => t.estado === 'Disponible').length;
             let rec = 0;
             vendas.forEach(v => {
-                let pg = v.entrada; if(v.moneda==='USD') pg *= 6.96;
-                v.cuotas.forEach(c => { if(c.pago) { let val = c.valor_pago||c.valor; if(v.moneda==='USD') val *= (c.tc||6.96); pg += val; } });
+                let pg = v.entrada; if(v.moeda==='USD') pg *= 6.96;
+                v.cuotas.forEach(c => { if(c.pago) { let val = c.valor_pago||c.valor; if(v.moeda==='USD') val *= (c.tc||6.96); pg += val; } });
                 rec += pg;
             });
             document.getElementById('kpi-money').innerText = "Bs " + rec.toLocaleString('pt-BR', {minimumFractionDigits: 2});
