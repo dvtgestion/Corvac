@@ -226,6 +226,24 @@
             border: 1px solid #c3e6cb;
         }
 
+        /* KPI helpers (FIX MOBILE overflow) */
+        .kpi-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+        .kpi-card { flex:1 1 220px; min-width: 220px; text-align:center; }
+        .kpi-title { color:#64748b; font-weight:900; }
+        .kpi-value {
+            margin-top: 8px;
+            color:#0f172a;
+            font-weight: 950;
+            font-size: clamp(1.55rem, 6vw, 2.4rem);
+            line-height: 1.1;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #kpi-disp.kpi-value { color: var(--success); }
+        #kpi-vendidos.kpi-value { color: #64748b; }
+
         #app-container {
             display: flex;
             flex: 1;
@@ -666,7 +684,7 @@
             table { min-width: 720px; }
         }
 
-        /* Mobile real: drawer + tablas scroll */
+        /* Mobile real: drawer + tablas scroll + KPI FIX */
         @media (max-width: 700px) {
             .mobile-only { display: inline-flex; }
 
@@ -691,6 +709,19 @@
             table { min-width: 780px; }
 
             .modal-content { max-width: 96vw; }
+
+            .kpi-card { flex: 1 1 48%; min-width: 160px; }
+            .kpi-value {
+                font-size: clamp(1.25rem, 7vw, 2.05rem);
+                white-space: nowrap;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .kpi-card { flex: 1 1 100%; min-width: 0; }
+            .kpi-value {
+                font-size: clamp(1.25rem, 8vw, 1.95rem);
+            }
         }
     </style>
 </head>
@@ -769,22 +800,22 @@
                         <span style="font-size:0.82rem; color:#334155; margin-left:8px; font-weight:800;">(Filtra lo recaudado)</span>
                     </div>
 
-                    <div class="flex gap-2" style="margin-bottom:16px; flex-wrap:wrap;">
-                        <div class="card" style="flex:1; text-align:center;">
-                            <h4 style="color:#64748b; font-weight:900;">Total Terrenos</h4>
-                            <h1 id="kpi-total" style="font-size:2.4rem; margin-top:8px; color:#0f172a;">0</h1>
+                    <div class="kpi-row">
+                        <div class="card kpi-card">
+                            <h4 class="kpi-title">Total Terrenos</h4>
+                            <h1 id="kpi-total" class="kpi-value">0</h1>
                         </div>
-                        <div class="card" style="flex:1; text-align:center;">
-                            <h4 style="color:#64748b; font-weight:900;">Disponibles</h4>
-                            <h1 id="kpi-disp" style="font-size:2.4rem; margin-top:8px; color:var(--success)">0</h1>
+                        <div class="card kpi-card">
+                            <h4 class="kpi-title">Disponibles</h4>
+                            <h1 id="kpi-disp" class="kpi-value">0</h1>
                         </div>
-                        <div class="card" style="flex:1; text-align:center;">
-                            <h4 style="color:#64748b; font-weight:900;">Vendidos</h4>
-                            <h1 id="kpi-vendidos" style="font-size:2.4rem; margin-top:8px; color:#64748b">0</h1>
+                        <div class="card kpi-card">
+                            <h4 class="kpi-title">Vendidos</h4>
+                            <h1 id="kpi-vendidos" class="kpi-value">0</h1>
                         </div>
-                        <div class="card" style="flex:1; text-align:center; border: 1px solid rgba(41,128,185,0.18);">
-                            <h4 style="color:var(--accent); font-weight:950;">Recaudado (Ref. Bs)</h4>
-                            <h1 id="kpi-money" style="font-size:2.4rem; margin-top:8px; color:#0f172a;">0</h1>
+                        <div class="card kpi-card" style="border: 1px solid rgba(41,128,185,0.18);">
+                            <h4 class="kpi-title" style="color:var(--accent); font-weight:950;">Recaudado (Ref. Bs)</h4>
+                            <h1 id="kpi-money" class="kpi-value">0</h1>
                         </div>
                     </div>
 
@@ -1091,6 +1122,19 @@
                 <div class="input-group" style="margin-top:14px;">
                     <label><i class="fas fa-plus"></i> Agregar archivos</label>
                     <input type="file" id="e-new-files" multiple accept="image/*,.pdf">
+                    <div class="hint-box">
+                        Selecciona una foto, confirma. Luego selecciona un PDF, confirma.
+                        <small>Ahora también se acumula aquí (no se pierde lo anterior).</small>
+                    </div>
+
+                    <div class="flex gap-2" style="margin-top:10px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-g btn-sm" onclick="clearEditFilePool()">
+                            <i class="fas fa-broom"></i> Limpiar archivos nuevos
+                        </button>
+                        <span id="e-files-count" style="font-weight:900; color:#334155; align-self:center;"></span>
+                    </div>
+
+                    <div id="e-files-pool" class="gallery"></div>
                 </div>
 
                 <div class="text-right" style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
@@ -1130,16 +1174,23 @@
         let terrenos = [], vendas = [], user = null;
 
         // ==============================
-        // FIX REGISTRO: POOL DE ARCHIVOS (acumula selecciones)
+        // POOL REGISTRO (acumula selecciones)
         // ==============================
         let terrenoFilePool = []; // Array<File>
         let terrenoPoolObjectUrls = new Map(); // key -> objectURL
 
         // ==============================
-        // FIX VENTA: POOL DE ARCHIVOS (acumula selecciones)
+        // POOL VENTA (acumula selecciones)
         // ==============================
         let vendaFilePool = []; // Array<File>
         let vendaPoolObjectUrls = new Map(); // key -> objectURL
+
+        // ==============================
+        // POOL EDITAR/DETALLES (FIX: acumula en modal-edit)
+        // ==============================
+        let editFilePool = []; // Array<File>
+        let editPoolObjectUrls = new Map(); // key -> objectURL
+        let editPoolSetupDone = false;
 
         function fileKey(f) {
             try { return `${f.name || ''}|${f.size || 0}|${f.lastModified || 0}`; }
@@ -1397,6 +1448,115 @@
         }
 
         // ------------------------------
+        // RENDER POOL: EDITAR/DETALLES (FIX VENTAS/EDIT)
+        // ------------------------------
+        function renderEditFilePool() {
+            const box = document.getElementById('e-files-pool');
+            const counter = document.getElementById('e-files-count');
+            if (!box || !counter) return;
+
+            box.innerHTML = '';
+            counter.innerText = editFilePool.length ? `${editFilePool.length} archivo(s) nuevos seleccionados` : '';
+
+            editFilePool.forEach((f, idx) => {
+                const key = fileKey(f);
+                const isPdf = isPoolPdf(f);
+                const name = f?.name || 'Archivo';
+
+                let content = '';
+                if (isPdf) {
+                    content = `
+                        <div style="cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; padding-top:6px;"
+                             onclick="previewEditPoolFile(${idx})">
+                            <i class="fas fa-file-pdf pdf-icon"></i>
+                            <div class="file-name" title="${name}">${name}</div>
+                        </div>
+                    `;
+                } else {
+                    let url = editPoolObjectUrls.get(key);
+                    if (!url && isPoolImage(f)) {
+                        try {
+                            url = URL.createObjectURL(f);
+                            editPoolObjectUrls.set(key, url);
+                        } catch (_) { url = ''; }
+                    }
+                    content = `
+                        <img src="${url || ''}" alt="${name}" onclick="previewEditPoolFile(${idx})"
+                             onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;padding:10px;text-align:center;font-weight:900;color:#64748b;&quot;>Imagen no previsualizable</div>';">
+                        <div class="file-name" title="${name}">${name}</div>
+                    `;
+                }
+
+                box.innerHTML += `
+                    <div class="img-preview-box" title="${name}">
+                        ${content}
+                        <div class="btn-del-img" onclick="event.stopPropagation(); removeEditPoolFile(${idx})">X</div>
+                    </div>
+                `;
+            });
+        }
+
+        window.previewEditPoolFile = (idx) => {
+            const f = editFilePool[idx];
+            if (!f) return;
+            try {
+                const url = URL.createObjectURL(f);
+                window.open(url, '_blank', 'noopener,noreferrer');
+            } catch (_) {}
+        };
+
+        window.removeEditPoolFile = (idx) => {
+            const f = editFilePool[idx];
+            if (!f) return;
+            const key = fileKey(f);
+            const u = editPoolObjectUrls.get(key);
+            if (u) {
+                safeRevokeObjectURL(u);
+                editPoolObjectUrls.delete(key);
+            }
+            editFilePool.splice(idx, 1);
+            renderEditFilePool();
+        };
+
+        window.clearEditFilePool = () => {
+            try { for (const u of editPoolObjectUrls.values()) safeRevokeObjectURL(u); } catch (_) {}
+            editPoolObjectUrls.clear();
+            editFilePool = [];
+            renderEditFilePool();
+
+            const input = document.getElementById('e-new-files');
+            try { if (input) input.value = ''; } catch (_) {}
+        };
+
+        function setupEditPoolInput() {
+            if (editPoolSetupDone) return;
+            const input = document.getElementById('e-new-files');
+            if (!input) return;
+
+            input.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files || []);
+                if (!files.length) return;
+
+                const existing = new Set(editFilePool.map(fileKey));
+                files.forEach(f => {
+                    const k = fileKey(f);
+                    if (!existing.has(k)) {
+                        editFilePool.push(f);
+                        existing.add(k);
+                    }
+                });
+
+                try { input.value = ''; } catch (_) {}
+                renderEditFilePool();
+            });
+
+            editPoolSetupDone = true;
+            renderEditFilePool();
+        }
+
+        // (continúa en la PARTE 2/2)
+        
+                // ------------------------------
         // HELPERS (AJUSTE DEFINITIVO)
         // ------------------------------
         function extractFileIdFromUrl(u) {
@@ -1541,6 +1701,7 @@
                 initDateFilters();
                 setupTerrenoPoolInput();
                 setupVendaPoolInput();
+                setupEditPoolInput();
                 loadData();
             } catch (e) {
                 console.log("Login necesario");
@@ -1731,9 +1892,7 @@
             });
         }
 
-        // (continúa en la PARTE 2/2)
-        
-                // ------------------------------
+        // ------------------------------
         // VENTAS (usa pool acumulado también)
         // ------------------------------
         window.openVenda = (id) => {
@@ -1793,8 +1952,6 @@
                 fecha_entrada: today,
                 cuotas: cuotas,
                 data: new Date().toISOString(),
-
-                // (opcional, pero ya listo para notas futuras)
                 notas: ""
             };
 
@@ -1903,18 +2060,18 @@
         });
 
         // ------------------------------
-        // EDICIÓN Y DETALLES (FIX NOTAS EN VENTAS)
+        // EDICIÓN Y DETALLES (FIX NOTAS + FIX POOL EDIT)
         // ------------------------------
         window.openEdit = (id, type) => {
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
             d.fotos = normalizeFotos(d.fotos);
 
+            clearEditFilePool();
+
             document.getElementById('e-id').value = id;
             document.getElementById('e-type').value = type;
             document.getElementById('e-nome').value = (type === 'land') ? d.nome : d.cliente;
             document.getElementById('e-valor').value = (type === 'land') ? d.precio : d.total;
-
-            // FIX: ahora las notas también se cargan en ventas
             document.getElementById('e-notas').value = (d.notas || '');
 
             const g = document.getElementById('e-gallery');
@@ -1949,6 +2106,7 @@
                 </div>`;
             });
 
+            renderEditFilePool();
             document.getElementById('modal-edit').classList.remove('hidden');
         };
 
@@ -1970,10 +2128,9 @@
 
             d.fotos = normalizeFotos(d.fotos);
 
-            const newFiles = await uploadFiles(document.getElementById('e-new-files'));
-            d.fotos = [...d.fotos, ...normalizeFotos(newFiles)];
+            const uploaded = await uploadFiles(editFilePool);
+            d.fotos = [...d.fotos, ...normalizeFotos(uploaded)];
 
-            // FIX: guardar notas tanto en land como en sale
             d.notas = document.getElementById('e-notas').value;
 
             if (type === 'land') {
@@ -1981,13 +2138,13 @@
                 d.precio = parseFloat(document.getElementById('e-valor').value);
             } else {
                 d.cliente = document.getElementById('e-nome').value;
-
-                // (bonus útil) si editas el total en ventas, ahora también guarda:
                 const newTotal = parseFloat(document.getElementById('e-valor').value);
                 if (!isNaN(newTotal)) d.total = newTotal;
             }
 
             await db.updateDocument(DB_ID, (type === 'land' ? COL_TERRENOS : COL_VENDAS), id, { dados: JSON.stringify(d) });
+
+            clearEditFilePool();
             closeModal('modal-edit');
             loadData();
         });
@@ -2042,7 +2199,6 @@
                    <p style="color:#334155; margin-top:6px;">${d.notas || ''}</p>
                    <hr style="margin:12px 0; border:0; border-top:1px solid rgba(15,23,42,0.08);">${mediaHtml}`;
             } else {
-                // FIX: mostrar notas también en ventas
                 const notasHtml = (d.notas && String(d.notas).trim())
                     ? `<p style="color:#334155; margin-top:6px;"><strong>Notas:</strong> ${d.notas}</p>`
                     : '';
@@ -2071,7 +2227,6 @@
             if (v === 'listado') renderTerrenos();
             if (v === 'ventas') renderVendas();
 
-            // FIX: cerrar drawer al navegar en celular
             if (isMobile()) closeMobileMenu();
         };
 
@@ -2084,7 +2239,10 @@
 
         window.closeModal = (id) => {
             document.getElementById(id).classList.add('hidden');
-            if (id === 'modal-venda' && isMobile()) { /* no-op */ }
+
+            if (id === 'modal-edit') {
+                clearEditFilePool();
+            }
         };
 
         window.showPreview = (i, id, type) => {
