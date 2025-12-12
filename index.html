@@ -1227,6 +1227,12 @@
                 <p style="background:rgba(41,128,185,0.08); border:1px solid rgba(41,128,185,0.14); padding:12px; border-radius:14px; margin-bottom:12px; font-weight:900;">
                     Terreno: <strong id="v-land-info"></strong>
                 </p>
+                <div class="flex gap-2" style="margin-bottom:10px; flex-wrap:wrap;">
+                    <div class="input-group w-100" style="margin-bottom:0;">
+                        <label>Precio Registrado (Base)</label>
+                        <input type="text" id="v-precio-registrado" readonly>
+                    </div>
+                </div>
 
                 <div class="flex gap-2" style="flex-wrap:wrap;">
                     <div class="input-group w-100"><label>Cliente</label><input type="text" id="v-cliente" required></div>
@@ -2376,6 +2382,13 @@
 
                 document.getElementById('v-land-id').value = id;
                 document.getElementById('v-land-info').innerText = `${t.codigo} - ${t.nome}`;
+                const regEl = document.getElementById('v-precio-registrado');
+                if (regEl) {
+                    const symReg = (t.moneda === 'USD') ? '$us' : 'Bs';
+                    const valReg = (typeof t.precio === 'number' && !isNaN(t.precio)) ? t.precio : (parseFloat(t.precio) || 0);
+                    regEl.value = `${symReg} ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(valReg)} (${t.moneda})`;
+                }
+
 
                 const sel = document.getElementById('v-pay-currency');
                 if (sel) {
