@@ -199,6 +199,9 @@
         
         .live-calc-box { background: #e8f6f3; padding: 15px; border-radius: 6px; margin-top: 15px; text-align: center; border: 1px solid #a2d9ce; }
         .live-result { font-size: 1.5rem; font-weight: bold; color: var(--success); }
+        
+        /* CORREÇÃO DO GRÁFICO */
+        .chart-container { position: relative; height: 250px; width: 100%; display:flex; justify-content:center; }
     </style>
 </head>
 <body>
@@ -234,10 +237,10 @@
         <aside>
             <h3><i class="fas fa-building"></i> Corvac Panel</h3>
             <div class="menu">
-                <button onclick="nav('resumen')" class="active"><i class="fas fa-chart-pie"></i> Resumen General</button>
-                <button onclick="nav('registro')"><i class="fas fa-plus-circle"></i> Registrar Terreno</button>
-                <button onclick="nav('listado')"><i class="fas fa-list"></i> Inventario Completo</button>
-                <button onclick="nav('ventas')"><i class="fas fa-file-invoice-dollar"></i> Ventas y Cobranzas</button>
+                <button id="btn-resumen" onclick="nav('resumen')" class="active"><i class="fas fa-chart-pie"></i> Resumen General</button>
+                <button id="btn-registro" onclick="nav('registro')"><i class="fas fa-plus-circle"></i> Registrar Terreno</button>
+                <button id="btn-listado" onclick="nav('listado')"><i class="fas fa-list"></i> Inventario Completo</button>
+                <button id="btn-ventas" onclick="nav('ventas')"><i class="fas fa-file-invoice-dollar"></i> Ventas y Cobranzas</button>
             </div>
         </aside>
         
@@ -268,7 +271,9 @@
                         </div>
                     </div>
                     <div class="card">
-                        <canvas id="chart-fin" height="80"></canvas>
+                        <div class="chart-container">
+                            <canvas id="chart-fin"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -610,6 +615,7 @@
             document.getElementById('loader').classList.add('hidden');
         }
 
+        // --- CORREÇÃO 3: FUNÇÃO DE UPLOAD E LINK SEGURO ---
         async function uploadFiles(filesInput) {
             if (!filesInput.files.length) return [];
             let urls = [];
@@ -617,9 +623,12 @@
                 try {
                     // Upload com permissões de segurança
                     const res = await storage.createFile(BUCKET_ID, ID.unique(), filesInput.files[i], getPermissions());
-                    // Gera URL de visualização
-                    const url = client.config.endpoint + '/storage/buckets/' + BUCKET_ID + '/files/' + res.$id + '/view?project=' + PROJECT_ID;
-                    urls.push(url);
+                    
+                    // AQUI ESTÁ A CORREÇÃO DO LINK 404:
+                    // Usamos a função do SDK para gerar o link correto automaticamente
+                    const fileUrl = storage.getFileView(BUCKET_ID, res.$id);
+                    urls.push(fileUrl); 
+                    
                 } catch (e) {
                     console.error("Erro no upload", e);
                 }
@@ -920,19 +929,21 @@
             document.getElementById('modal-detalles').classList.remove('hidden');
         }
 
-        // --- 9. HELPERS ---
+        // --- 9. HELPERS E CORREÇÃO 2: MENU ATIVO ---
         window.nav = (v) => { 
             document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden')); 
             document.getElementById('view-'+v).classList.remove('hidden'); 
+            
+            // Remove active de todos e adiciona no correto
+            document.querySelectorAll('.menu button').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-'+v).classList.add('active');
+
             if(v==='listado') renderTerrenos(); 
             if(v==='ventas') renderVendas(); 
         }
-        window.switchVendas = (t) => { 
-            document.getElementById('tab-vendas-resumo').classList.add('hidden'); 
-            document.getElementById('tab-vendas-hist').classList.add('hidden'); 
-            document.getElementById('tab-vendas-'+t).classList.remove('hidden'); 
-        }
-        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
+
+        window.switchVendas=(t)=>{document.getElementById('tab-vendas-resumo').classList.add('hidden'); document.getElementById('tab-vendas-hist').classList.add('hidden'); document.getElementById('tab-vendas-'+t).classList.remove('hidden');}
+        window.closeModal=(id)=>document.getElementById(id).classList.add('hidden');
         
         window.showPreview = (i, id, c) => {
             document.getElementById(id).innerText = new Intl.NumberFormat('es-BO', { style: 'currency', currency: c }).format(i.value);
@@ -946,32 +957,18 @@
             document.getElementById('live-result-text').innerText = new Intl.NumberFormat('es-BO', { style: 'currency', currency: m }).format((p-e)/c);
         }
 
-        function updateDashboard() {
-            document.getElementById('kpi-total').innerText = terrenos.length;
-            document.getElementById('kpi-disp').innerText = terrenos.filter(t => t.estado === 'Disponible').length;
+        function updateDashboard(){ 
+            document.getElementById('kpi-total').innerText=terrenos.length; 
+            document.getElementById('kpi-disp').innerText=terrenos.filter(t=>t.estado==='Disponible').length; 
             
-            let rec = 0;
-            vendas.forEach(v => {
-                let pg = v.entrada; 
-                if(v.moeda==='USD') pg *= 6.96;
-                v.cuotas.forEach(c => { 
-                    if(c.pago) { 
-                        let val = c.valor_pago||c.valor; 
-                        if(v.moeda==='USD') val *= (c.tc||6.96); 
-                        pg += val; 
-                    } 
-                });
-                rec += pg;
-            });
-            document.getElementById('kpi-money').innerText = "Bs " + rec.toLocaleString('pt-BR', {minimumFractionDigits: 2});
-            
-            // Gráfico
             const ctx1 = document.getElementById('chart-fin').getContext('2d');
             if(window.ch1) window.ch1.destroy();
-            window.ch1 = new Chart(ctx1, { type: 'doughnut', data: { 
-                labels: ['Disp','Vend'], 
-                datasets:[{data:[terrenos.filter(t=>t.estado==='Disponible').length, terrenos.filter(t=>t.estado==='Vendido').length], backgroundColor:['#27ae60','#7f8c8d']}] 
-            }});
+            // Correção Gráfico: Responsive false para respeitar o container
+            window.ch1 = new Chart(ctx1, { 
+                type: 'doughnut', 
+                data: { labels: ['Disp','Vend'], datasets:[{data:[terrenos.filter(t=>t.estado==='Disponible').length, terrenos.filter(t=>t.estado==='Vendido').length], backgroundColor:['#27ae60','#7f8c8d']}] },
+                options: { maintainAspectRatio: false }
+            });
         }
     </script>
 </body>
