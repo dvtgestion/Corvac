@@ -607,7 +607,7 @@
                             </div>
                             <div class="input-group">
                                 <label><i class="fas fa-camera"></i> Fotos y Documentos (PDF)</label>
-                                <input type="file" id="t-files" multiple accept="image/*,application/pdf,.pdf">
+                                <input type="file" id="t-files" multiple accept="image/*,.pdf">
                             </div>
                             <div class="input-group">
                                 <label>Notas Adicionales</label>
@@ -719,7 +719,7 @@
                 </div>
                 <div class="input-group">
                     <label>Documentos (Fotos/PDF)</label>
-                    <input type="file" id="v-files" multiple accept="image/*,application/pdf,.pdf">
+                    <input type="file" id="v-files" multiple accept="image/*,.pdf">
                 </div>
                 <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
                 <div class="flex gap-2">
@@ -803,7 +803,7 @@
 
                 <div class="input-group" style="margin-top:15px;">
                     <label><i class="fas fa-plus"></i> Agregar archivos</label>
-                    <input type="file" id="e-new-files" multiple accept="image/*,application/pdf,.pdf">
+                    <input type="file" id="e-new-files" multiple accept="image/*,.pdf">
                 </div>
 
                 <div class="text-right" style="margin-top:20px;">
@@ -843,8 +843,36 @@
         let terrenos = [], vendas = [], user = null;
 
         // ------------------------------
-        // HELPERS (AJUSTE)
+        // HELPERS (AJUSTE DEFINITIVO)
         // ------------------------------
+        function extractFileIdFromUrl(u) {
+            const s = String(u || '');
+            const m = s.match(/\/files\/([^\/]+)\//i);
+            return m ? m[1] : null;
+        }
+
+        function getExt(name) {
+            const s = String(name || '').toLowerCase().trim();
+            const i = s.lastIndexOf('.');
+            if (i === -1) return '';
+            return s.slice(i + 1);
+        }
+
+        function isPdfByNameOrUrl(v) {
+            const s = String(v || '').toLowerCase();
+            return s.endsWith('.pdf') || s.includes('application/pdf');
+        }
+
+        function isImageByNameOrMime(file) {
+            if (!file) return false;
+            const name = (typeof file === 'string') ? file : (file.name || file.filename || '');
+            const mime = (typeof file === 'object' && file) ? (file.mime || file.type || '') : '';
+            const ext = getExt(name);
+            if (mime && String(mime).toLowerCase().startsWith('image/')) return true;
+            if (['jpg','jpeg','png','webp','gif','bmp','svg','heic','heif'].includes(ext)) return true;
+            return false;
+        }
+
         function normalizeFotos(fotos) {
             if (!fotos) return [];
             const arr = Array.isArray(fotos) ? fotos : [fotos];
@@ -854,42 +882,62 @@
                     // formato antigo: string URL
                     if (typeof f === 'string') {
                         const id = extractFileIdFromUrl(f);
-                        return { id: id || null, url: f, name: 'Archivo', isPdf: isPdfByNameOrUrl(f) };
+                        const name = 'Archivo';
+                        return {
+                            id: id || null,
+                            url: String(f || ''),
+                            name,
+                            mime: '',
+                            ext: getExt(f),
+                            isPdf: isPdfByNameOrUrl(f),
+                            createdAt: null
+                        };
                     }
+
                     // formato atual: objeto
                     if (typeof f === 'object' && f) {
-                        const urlStr = (typeof f.url === 'string') ? f.url : (f.url?.href || (f.url ? String(f.url) : ''));
-                        const id = f.id || f.fileId || extractFileIdFromUrl(urlStr) || null;
+                        const rawUrl = (typeof f.url === 'string')
+                            ? f.url
+                            : (f.url && f.url.href ? f.url.href : (f.url ? String(f.url) : ''));
+
+                        const id = f.id || f.fileId || extractFileIdFromUrl(rawUrl) || null;
                         const name = f.name || f.filename || 'Archivo';
+                        const mime = f.mime || f.type || '';
+                        const ext = f.ext || getExt(name) || getExt(rawUrl);
+
                         const isPdf = (typeof f.isPdf === 'boolean')
                             ? f.isPdf
-                            : (f.mime === 'application/pdf' || isPdfByNameOrUrl(name) || isPdfByNameOrUrl(urlStr));
-                        return { ...f, id, url: urlStr || f.url, name, isPdf };
+                            : (String(mime).toLowerCase() === 'application/pdf' || ext === 'pdf' || isPdfByNameOrUrl(name) || isPdfByNameOrUrl(rawUrl));
+
+                        return {
+                            ...f,
+                            id,
+                            url: String(rawUrl || ''),
+                            name,
+                            mime: String(mime || ''),
+                            ext: String(ext || ''),
+                            isPdf,
+                            createdAt: f.createdAt || f.created_at || null
+                        };
                     }
+
                     return null;
                 })
                 .filter(Boolean);
         }
 
-        function extractFileIdFromUrl(u) {
-            const s = String(u || '');
-            const m = s.match(/\/files\/([^\/]+)\//i);
-            return m ? m[1] : null;
-        }
-
-        function isPdfByNameOrUrl(v) {
-            const s = String(v || '').toLowerCase();
-            return s.endsWith('.pdf') || s.includes('application/pdf');
-        }
-
         function getFileUrl(file) {
             if (!file) return '';
-            const id = file.id || file.fileId;
+            const f = (typeof file === 'string') ? { url: file } : file;
+
+            const id = f.id || f.fileId;
             if (id) {
                 const view = storage.getFileView(BUCKET_ID, id);
-                return (typeof view === 'string') ? view : (view.href || view.toString());
+                const url = (typeof view === 'string') ? view : (view && view.href ? view.href : String(view));
+                return String(url || '');
             }
-            const u = (typeof file === 'string') ? file : (file.url?.href || file.url || '');
+
+            const u = (typeof f.url === 'string') ? f.url : (f.url && f.url.href ? f.url.href : (f.url ? String(f.url) : ''));
             return String(u || '');
         }
 
@@ -903,13 +951,18 @@
             if (!file) return false;
             if (typeof file === 'string') return isPdfByNameOrUrl(file);
             if (typeof file.isPdf === 'boolean') return file.isPdf;
-            if (file.mime) return file.mime === 'application/pdf';
-            return isPdfByNameOrUrl(file.name) || isPdfByNameOrUrl(file.url);
+            const mime = (file.mime || file.type || '');
+            const name = (file.name || file.filename || '');
+            const ext = file.ext || getExt(name);
+            if (String(mime).toLowerCase() === 'application/pdf') return true;
+            if (String(ext).toLowerCase() === 'pdf') return true;
+            return isPdfByNameOrUrl(name) || isPdfByNameOrUrl(file.url);
         }
 
         window.openFile = (url) => {
-            if (!url) return;
-            window.open(url, '_blank', 'noopener,noreferrer');
+            const u = String(url || '');
+            if (!u) return;
+            window.open(u, '_blank', 'noopener,noreferrer');
         };
 
         // ------------------------------
@@ -986,7 +1039,7 @@
         }
 
         // ------------------------------
-        // UPLOAD (CORRIGIDO): guarda fileId, no URL
+        // UPLOAD (CORRIGIDO): guarda fileId, mime, ext, size
         // ------------------------------
         async function uploadFiles(filesInput) {
             if (!filesInput || !filesInput.files || !filesInput.files.length) return [];
@@ -997,21 +1050,31 @@
                     const file = filesInput.files[i];
                     const res = await storage.createFile(BUCKET_ID, ID.unique(), file, getPermissions());
 
+                    const isPdf = (file.type === 'application/pdf') || file.name.toLowerCase().endsWith('.pdf');
                     filesData.push({
                         id: res.$id,
                         name: file.name,
                         mime: file.type || '',
-                        isPdf: (file.type === 'application/pdf') || file.name.toLowerCase().endsWith('.pdf'),
+                        ext: getExt(file.name),
+                        size: file.size || 0,
+                        isPdf: isPdf,
                         createdAt: new Date().toISOString()
                     });
-                } catch (e) { console.error("Upload error", e); }
+                } catch (e) {
+                    console.error("Upload error", e);
+                    const msg =
+                        (e && e.message) ? e.message :
+                        (typeof e === "string") ? e :
+                        JSON.stringify(e);
+                    alert("Error subiendo archivo.\n\n" + msg);
+                }
             }
 
             try { filesInput.value = ''; } catch (_) {}
             return filesData;
         }
-        
-                // ------------------------------
+
+        // ------------------------------
         // TERRENOS
         // ------------------------------
         document.getElementById('form-terreno').addEventListener('submit', async (e) => {
@@ -1048,15 +1111,19 @@
                 const files = normalizeFotos(t.fotos);
                 const fileCount = files.length;
 
-                const images = files.filter(x => !isPdfFile(x));
-                const cover = images[0] || files[0] || null;
+                // COVER: prioriza imagen real SIEMPRE
+                const images = files.filter(x => !isPdfFile(x) && isImageByNameOrMime(x));
+                const cover = images[0] || files.find(x => !isPdfFile(x)) || files[0] || null;
 
                 let thumbInner = `<div style="width:60px;height:60px;background:#eee;border-radius:4px;"></div>`;
                 if (cover) {
                     const url = getFileUrl(cover);
                     const pdf = isPdfFile(cover);
-                    if (pdf) thumbInner = `<div class="thumb-pdf"><i class="fas fa-file-pdf"></i></div>`;
-                    else thumbInner = `<img src="${url}" class="thumb-small">`;
+                    if (pdf) {
+                        thumbInner = `<div class="thumb-pdf"><i class="fas fa-file-pdf"></i></div>`;
+                    } else {
+                        thumbInner = `<img src="${url}" class="thumb-small" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<div class=&quot;thumb-pdf&quot;><i class=&quot;fas fa-image&quot;></i></div>';">`;
+                    }
                 }
 
                 const badge = (fileCount > 1) ? `<span class="file-count">+${fileCount}</span>` : '';
@@ -1081,8 +1148,8 @@
                 </tr>`;
             });
         }
-
-        // ------------------------------
+        
+                // ------------------------------
         // VENTAS
         // ------------------------------
         window.openVenda = (id) => {
@@ -1205,7 +1272,7 @@
         });
 
         // ------------------------------
-        // EDICIÓN Y DETALLES (CORRIGIDO: PDF abre también en editar)
+        // EDICIÓN Y DETALLES (CORRIGIDO: PDF e imagen abren con <a> siempre)
         // ------------------------------
         window.openEdit = (id, type) => {
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
@@ -1217,28 +1284,35 @@
             document.getElementById('e-valor').value = (type === 'land') ? d.precio : d.total;
             document.getElementById('e-notas').value = (type === 'land') ? (d.notas || '') : '';
 
-            const g = document.getElementById('e-gallery'); g.innerHTML = '';
+            const g = document.getElementById('e-gallery');
+            g.innerHTML = '';
 
             d.fotos.forEach((u, i) => {
                 const url = getFileUrl(u);
                 const pdf = isPdfFile(u);
                 const name = getFileName(u);
 
-                const clickOpen = `onclick="openFile(${JSON.stringify(url)})"`;
-
                 let content = '';
                 if (pdf) {
                     content = `
-                        <div ${clickOpen} style="cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%;">
+                        <a href="${url}" target="_blank" rel="noopener noreferrer"
+                           style="text-decoration:none; color:inherit; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                             <i class="fas fa-file-pdf pdf-icon"></i>
                             <div class="file-name" title="${name}">${name}</div>
-                        </div>
+                        </a>
                     `;
                 } else {
-                    content = `<img src="${url}" ${clickOpen} style="cursor:pointer;">`;
+                    content = `
+                        <a href="${url}" target="_blank" rel="noopener noreferrer" style="width:100%; height:100%; display:block;">
+                            <img src="${url}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;">
+                        </a>
+                    `;
                 }
 
-                g.innerHTML += `<div class="img-preview-box">${content}<div class="btn-del-img" onclick="event.stopPropagation(); remFoto('${id}', '${type}', ${i})">X</div></div>`;
+                g.innerHTML += `<div class="img-preview-box">
+                    ${content}
+                    <div class="btn-del-img" onclick="event.stopPropagation(); remFoto('${id}', '${type}', ${i})">X</div>
+                </div>`;
             });
 
             document.getElementById('modal-edit').classList.remove('hidden');
@@ -1303,15 +1377,25 @@
                 const name = getFileName(u);
 
                 if(pdf) {
-                    mediaHtml += `<a href="${url}" target="_blank" class="doc-link"><i class="fas fa-file-pdf" style="color:var(--danger);font-size:1.2rem;"></i> <span>${name}</span></a>`;
+                    mediaHtml += `<a href="${url}" target="_blank" rel="noopener noreferrer" class="doc-link">
+                        <i class="fas fa-file-pdf" style="color:var(--danger);font-size:1.2rem;"></i>
+                        <span>${name}</span>
+                    </a>`;
                 } else {
-                    mediaHtml += `<img src="${url}" class="img-full" onclick="openFile(${JSON.stringify(url)})">`;
+                    mediaHtml += `<a href="${url}" target="_blank" rel="noopener noreferrer" style="display:block;">
+                        <img src="${url}" class="img-full">
+                    </a>`;
                 }
             });
 
             const c = document.getElementById('detalles-contenido');
             c.innerHTML = (type === 'land')
-                ? `<h2>${d.nome}</h2><p><strong>Precio:</strong> ${d.moneda} ${new Intl.NumberFormat('es-BO').format(d.precio)}</p><p><strong>Superficie:</strong> ${new Intl.NumberFormat('es-BO').format(d.area)} m²</p><p><strong>Estado:</strong> ${d.estado}</p><p>${d.notas || ''}</p><hr>${mediaHtml}`
+                ? `<h2>${d.nome}</h2>
+                   <p><strong>Precio:</strong> ${d.moneda} ${new Intl.NumberFormat('es-BO').format(d.precio)}</p>
+                   <p><strong>Superficie:</strong> ${new Intl.NumberFormat('es-BO').format(d.area)} m²</p>
+                   <p><strong>Estado:</strong> ${d.estado}</p>
+                   <p>${d.notas || ''}</p>
+                   <hr>${mediaHtml}`
                 : `<h2>${d.cliente}</h2><p><strong>CI:</strong> ${d.ci || ''}</p><hr>${mediaHtml}`;
 
             document.getElementById('modal-detalles').classList.remove('hidden');
