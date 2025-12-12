@@ -10,7 +10,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* --- Colores del Sistema --- */
         :root {
             --primary: #2c3e50;
             --secondary: #34495e;
@@ -21,7 +20,6 @@
             --light: #f4f6f9;
             --white: #ffffff;
 
-            /* Extra estética */
             --bg1: #0f172a;
             --bg2: #111827;
             --glass: rgba(255,255,255,0.08);
@@ -56,6 +54,7 @@
         .text-center { text-align: center; }
         .justify-between { justify-content: space-between; }
         .items-center { align-items: center; }
+        .mobile-only { display: none; }
 
         .btn {
             padding: 10px 16px;
@@ -82,8 +81,6 @@
         .btn-w { background: linear-gradient(135deg, #f1c40f, var(--warning)); color: #2c3e50; }
         .btn-g { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
         .btn-sm { padding: 7px 12px; font-size: 0.82rem; border-radius: 9px; }
-
-        .mobile-only { display: none; }
 
         #loader {
             position: fixed;
@@ -229,7 +226,10 @@
         /* KPI helpers (FIX MOBILE overflow) */
         .kpi-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
         .kpi-card { flex:1 1 220px; min-width: 220px; text-align:center; }
+
         .kpi-title { color:#64748b; font-weight:900; }
+
+        /* DEFAULT KPI value (puede cortar con ellipsis si es necesario) */
         .kpi-value {
             margin-top: 8px;
             color:#0f172a;
@@ -244,6 +244,16 @@
         #kpi-disp.kpi-value { color: var(--success); }
         #kpi-vendidos.kpi-value { color: #64748b; }
 
+        /* === FIX: KPI RECAUDADO siempre COMPLETO (sin ...) === */
+        #kpi-money.kpi-value {
+            overflow: visible !important;
+            text-overflow: clip !important;
+            white-space: normal !important;      /* permite salto de línea */
+            word-break: break-word !important;   /* rompe si es largo */
+            overflow-wrap: anywhere !important;  /* evita salir del card */
+            line-height: 1.15;
+        }
+
         #app-container {
             display: flex;
             flex: 1;
@@ -254,7 +264,6 @@
             position: relative;
         }
 
-        /* Overlay mobile para drawer */
         #mobile-overlay {
             position: fixed;
             inset: 0;
@@ -375,7 +384,6 @@
             min-width: 0;
         }
 
-        /* Wrapper para tablas responsive */
         .table-wrap {
             width: 100%;
             overflow-x: auto;
@@ -684,7 +692,6 @@
             table { min-width: 720px; }
         }
 
-        /* Mobile real: drawer + tablas scroll + KPI FIX */
         @media (max-width: 700px) {
             .mobile-only { display: inline-flex; }
 
@@ -704,23 +711,32 @@
             header { padding: 12px 12px; }
             #content { padding: 12px; }
 
-            .menu { padding: 10px; }
-
             table { min-width: 780px; }
-
             .modal-content { max-width: 96vw; }
 
             .kpi-card { flex: 1 1 48%; min-width: 160px; }
+
+            /* Mantém geral, mas Recaudado vai quebrar linha (já está fixo em #kpi-money) */
             .kpi-value {
-                font-size: clamp(1.25rem, 7vw, 2.05rem);
+                font-size: clamp(1.18rem, 7vw, 2.05rem);
                 white-space: nowrap;
+            }
+
+            /* Opcional: deixa Recaudado um pouco menor no mobile para caber melhor */
+            #kpi-money.kpi-value {
+                font-size: clamp(1.05rem, 6.2vw, 1.7rem);
             }
         }
 
         @media (max-width: 420px) {
             .kpi-card { flex: 1 1 100%; min-width: 0; }
+
             .kpi-value {
-                font-size: clamp(1.25rem, 8vw, 1.95rem);
+                font-size: clamp(1.18rem, 8vw, 1.95rem);
+            }
+
+            #kpi-money.kpi-value {
+                font-size: clamp(1.0rem, 7.2vw, 1.55rem);
             }
         }
     </style>
@@ -866,7 +882,6 @@
                                     <span id="preview-precio-t" class="number-preview">0,00</span>
                                 </div>
                             </div>
-
                             <div class="input-group">
                                 <label><i class="fas fa-camera"></i> Fotos y Documentos (PDF)</label>
                                 <input type="file" id="t-files" multiple accept="image/*,.pdf">
@@ -1173,23 +1188,14 @@
 
         let terrenos = [], vendas = [], user = null;
 
-        // ==============================
-        // POOL REGISTRO (acumula selecciones)
-        // ==============================
-        let terrenoFilePool = []; // Array<File>
-        let terrenoPoolObjectUrls = new Map(); // key -> objectURL
+        let terrenoFilePool = [];
+        let terrenoPoolObjectUrls = new Map();
 
-        // ==============================
-        // POOL VENTA (acumula selecciones)
-        // ==============================
-        let vendaFilePool = []; // Array<File>
-        let vendaPoolObjectUrls = new Map(); // key -> objectURL
+        let vendaFilePool = [];
+        let vendaPoolObjectUrls = new Map();
 
-        // ==============================
-        // POOL EDITAR/DETALLES (FIX: acumula en modal-edit)
-        // ==============================
-        let editFilePool = []; // Array<File>
-        let editPoolObjectUrls = new Map(); // key -> objectURL
+        let editFilePool = [];
+        let editPoolObjectUrls = new Map();
         let editPoolSetupDone = false;
 
         function fileKey(f) {
@@ -1214,9 +1220,6 @@
             return name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png') || name.endsWith('.webp') || name.endsWith('.gif') || name.endsWith('.heic') || name.endsWith('.heif') || name.endsWith('.bmp') || name.endsWith('.svg');
         }
 
-        // ------------------------------
-        // MOBILE MENU (drawer)
-        // ------------------------------
         function isMobile() {
             try { return window.matchMedia && window.matchMedia('(max-width: 700px)').matches; }
             catch (_) { return false; }
@@ -1240,9 +1243,6 @@
             ov.classList.add('hidden');
         };
 
-        // ------------------------------
-        // RENDER POOL: REGISTRO
-        // ------------------------------
         function renderTerrenoFilePool() {
             const box = document.getElementById('t-files-pool');
             const counter = document.getElementById('t-files-count');
@@ -1268,10 +1268,8 @@
                 } else {
                     let url = terrenoPoolObjectUrls.get(key);
                     if (!url && isPoolImage(f)) {
-                        try {
-                            url = URL.createObjectURL(f);
-                            terrenoPoolObjectUrls.set(key, url);
-                        } catch (_) { url = ''; }
+                        try { url = URL.createObjectURL(f); terrenoPoolObjectUrls.set(key, url); }
+                        catch (_) { url = ''; }
                     }
                     content = `
                         <img src="${url || ''}" alt="${name}" onclick="previewPoolFile(${idx})"
@@ -1292,10 +1290,8 @@
         window.previewPoolFile = (idx) => {
             const f = terrenoFilePool[idx];
             if (!f) return;
-            try {
-                const url = URL.createObjectURL(f);
-                window.open(url, '_blank', 'noopener,noreferrer');
-            } catch (_) {}
+            try { const url = URL.createObjectURL(f); window.open(url, '_blank', 'noopener,noreferrer'); }
+            catch (_) {}
         };
 
         window.removePoolFile = (idx) => {
@@ -1303,10 +1299,7 @@
             if (!f) return;
             const key = fileKey(f);
             const u = terrenoPoolObjectUrls.get(key);
-            if (u) {
-                safeRevokeObjectURL(u);
-                terrenoPoolObjectUrls.delete(key);
-            }
+            if (u) { safeRevokeObjectURL(u); terrenoPoolObjectUrls.delete(key); }
             terrenoFilePool.splice(idx, 1);
             renderTerrenoFilePool();
         };
@@ -1329,10 +1322,7 @@
                 const existing = new Set(terrenoFilePool.map(fileKey));
                 files.forEach(f => {
                     const k = fileKey(f);
-                    if (!existing.has(k)) {
-                        terrenoFilePool.push(f);
-                        existing.add(k);
-                    }
+                    if (!existing.has(k)) { terrenoFilePool.push(f); existing.add(k); }
                 });
 
                 try { input.value = ''; } catch (_) {}
@@ -1342,10 +1332,9 @@
             renderTerrenoFilePool();
         }
 
-        // ------------------------------
-        // RENDER POOL: VENTA
-        // ------------------------------
-        function renderVendaFilePool() {
+        /* (continúa en PARTE 2/2) */
+        
+                function renderVendaFilePool() {
             const box = document.getElementById('v-files-pool');
             const counter = document.getElementById('v-files-count');
             if (!box || !counter) return;
@@ -1370,10 +1359,8 @@
                 } else {
                     let url = vendaPoolObjectUrls.get(key);
                     if (!url && isPoolImage(f)) {
-                        try {
-                            url = URL.createObjectURL(f);
-                            vendaPoolObjectUrls.set(key, url);
-                        } catch (_) { url = ''; }
+                        try { url = URL.createObjectURL(f); vendaPoolObjectUrls.set(key, url); }
+                        catch (_) { url = ''; }
                     }
                     content = `
                         <img src="${url || ''}" alt="${name}" onclick="previewVendaPoolFile(${idx})"
@@ -1394,10 +1381,8 @@
         window.previewVendaPoolFile = (idx) => {
             const f = vendaFilePool[idx];
             if (!f) return;
-            try {
-                const url = URL.createObjectURL(f);
-                window.open(url, '_blank', 'noopener,noreferrer');
-            } catch (_) {}
+            try { const url = URL.createObjectURL(f); window.open(url, '_blank', 'noopener,noreferrer'); }
+            catch (_) {}
         };
 
         window.removeVendaPoolFile = (idx) => {
@@ -1405,10 +1390,7 @@
             if (!f) return;
             const key = fileKey(f);
             const u = vendaPoolObjectUrls.get(key);
-            if (u) {
-                safeRevokeObjectURL(u);
-                vendaPoolObjectUrls.delete(key);
-            }
+            if (u) { safeRevokeObjectURL(u); vendaPoolObjectUrls.delete(key); }
             vendaFilePool.splice(idx, 1);
             renderVendaFilePool();
         };
@@ -1434,10 +1416,7 @@
                 const existing = new Set(vendaFilePool.map(fileKey));
                 files.forEach(f => {
                     const k = fileKey(f);
-                    if (!existing.has(k)) {
-                        vendaFilePool.push(f);
-                        existing.add(k);
-                    }
+                    if (!existing.has(k)) { vendaFilePool.push(f); existing.add(k); }
                 });
 
                 try { input.value = ''; } catch (_) {}
@@ -1447,9 +1426,6 @@
             renderVendaFilePool();
         }
 
-        // ------------------------------
-        // RENDER POOL: EDITAR/DETALLES (FIX VENTAS/EDIT)
-        // ------------------------------
         function renderEditFilePool() {
             const box = document.getElementById('e-files-pool');
             const counter = document.getElementById('e-files-count');
@@ -1475,10 +1451,8 @@
                 } else {
                     let url = editPoolObjectUrls.get(key);
                     if (!url && isPoolImage(f)) {
-                        try {
-                            url = URL.createObjectURL(f);
-                            editPoolObjectUrls.set(key, url);
-                        } catch (_) { url = ''; }
+                        try { url = URL.createObjectURL(f); editPoolObjectUrls.set(key, url); }
+                        catch (_) { url = ''; }
                     }
                     content = `
                         <img src="${url || ''}" alt="${name}" onclick="previewEditPoolFile(${idx})"
@@ -1499,10 +1473,8 @@
         window.previewEditPoolFile = (idx) => {
             const f = editFilePool[idx];
             if (!f) return;
-            try {
-                const url = URL.createObjectURL(f);
-                window.open(url, '_blank', 'noopener,noreferrer');
-            } catch (_) {}
+            try { const url = URL.createObjectURL(f); window.open(url, '_blank', 'noopener,noreferrer'); }
+            catch (_) {}
         };
 
         window.removeEditPoolFile = (idx) => {
@@ -1510,10 +1482,7 @@
             if (!f) return;
             const key = fileKey(f);
             const u = editPoolObjectUrls.get(key);
-            if (u) {
-                safeRevokeObjectURL(u);
-                editPoolObjectUrls.delete(key);
-            }
+            if (u) { safeRevokeObjectURL(u); editPoolObjectUrls.delete(key); }
             editFilePool.splice(idx, 1);
             renderEditFilePool();
         };
@@ -1540,10 +1509,7 @@
                 const existing = new Set(editFilePool.map(fileKey));
                 files.forEach(f => {
                     const k = fileKey(f);
-                    if (!existing.has(k)) {
-                        editFilePool.push(f);
-                        existing.add(k);
-                    }
+                    if (!existing.has(k)) { editFilePool.push(f); existing.add(k); }
                 });
 
                 try { input.value = ''; } catch (_) {}
@@ -1554,9 +1520,7 @@
             renderEditFilePool();
         }
 
-        // (continúa en la PARTE 2/2)
-        
-                // ------------------------------
+        // ------------------------------
         // HELPERS (AJUSTE DEFINITIVO)
         // ------------------------------
         function extractFileIdFromUrl(u) {
@@ -1677,9 +1641,6 @@
             window.open(u, '_blank', 'noopener,noreferrer');
         };
 
-        // ------------------------------
-        // Permisos de Seguridad
-        // ------------------------------
         function getPermissions() {
             if (!user) return [];
             return [
@@ -1689,9 +1650,6 @@
             ];
         }
 
-        // ------------------------------
-        // AUTH
-        // ------------------------------
         async function checkSession() {
             try {
                 user = await account.get();
@@ -1736,14 +1694,8 @@
             }
         });
 
-        window.logout = async () => {
-            await account.deleteSession('current');
-            location.reload();
-        };
+        window.logout = async () => { await account.deleteSession('current'); location.reload(); };
 
-        // ------------------------------
-        // DATA
-        // ------------------------------
         async function loadData() {
             document.getElementById('loader').classList.remove('hidden');
             try {
@@ -1770,17 +1722,11 @@
             document.getElementById('loader').classList.add('hidden');
         }
 
-        // ------------------------------
-        // UPLOAD (acepta input o Array<File>)
-        // ------------------------------
         async function uploadFiles(source) {
             let fileList = [];
 
-            if (Array.isArray(source)) {
-                fileList = source;
-            } else if (source && source.files) {
-                fileList = Array.from(source.files || []);
-            }
+            if (Array.isArray(source)) fileList = source;
+            else if (source && source.files) fileList = Array.from(source.files || []);
 
             if (!fileList.length) return [];
 
@@ -1814,9 +1760,6 @@
             return filesData;
         }
 
-        // ------------------------------
-        // TERRENOS (usa pool acumulado)
-        // ------------------------------
         document.getElementById('form-terreno').addEventListener('submit', async (e) => {
             e.preventDefault();
             document.getElementById('loader').classList.remove('hidden');
@@ -1892,14 +1835,9 @@
             });
         }
 
-        // ------------------------------
-        // VENTAS (usa pool acumulado también)
-        // ------------------------------
         window.openVenda = (id) => {
             const t = terrenos.find(x => x.$id === id);
-
             clearVendaFilePool();
-
             document.getElementById('v-land-id').value = id;
             document.getElementById('v-land-info').innerText = `${t.codigo} - ${t.nome}`;
             document.getElementById('lbl-moneda-venda').innerText = t.moneda;
@@ -1908,7 +1846,6 @@
             window.calcLive();
             window.showPreview(document.getElementById('v-total'), 'preview-v-total', t.moneda);
             window.showPreview(document.getElementById('v-entrada'), 'preview-v-entrada', t.moneda);
-
             renderVendaFilePool();
             document.getElementById('modal-venda').classList.remove('hidden');
         };
@@ -1932,12 +1869,7 @@
             for (let i = 0; i < qtd; i++) {
                 let dt = new Date(data1);
                 dt.setMonth(dt.getMonth() + i);
-                cuotas.push({
-                    n: i + 1,
-                    valor: (total - ent) / qtd,
-                    venc: dt.toISOString().split('T')[0],
-                    pago: false
-                });
+                cuotas.push({ n: i + 1, valor: (total - ent) / qtd, venc: dt.toISOString().split('T')[0], pago: false });
             }
 
             const venda = {
@@ -2010,9 +1942,6 @@
             });
         }
 
-        // ------------------------------
-        // PAGOS
-        // ------------------------------
         window.openPagar = (vId, n) => {
             const v = vendas.find(x => x.$id === vId);
             const c = v.cuotas.find(x => x.n === n);
@@ -2059,9 +1988,6 @@
             loadData();
         });
 
-        // ------------------------------
-        // EDICIÓN Y DETALLES (FIX NOTAS + FIX POOL EDIT)
-        // ------------------------------
         window.openEdit = (id, type) => {
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
             d.fotos = normalizeFotos(d.fotos);
@@ -2212,9 +2138,6 @@
             document.getElementById('modal-detalles').classList.remove('hidden');
         };
 
-        // ------------------------------
-        // UTILS
-        // ------------------------------
         window.nav = (v) => {
             document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden'));
             document.getElementById('view-' + v).classList.remove('hidden');
@@ -2226,7 +2149,6 @@
 
             if (v === 'listado') renderTerrenos();
             if (v === 'ventas') renderVendas();
-
             if (isMobile()) closeMobileMenu();
         };
 
@@ -2239,10 +2161,7 @@
 
         window.closeModal = (id) => {
             document.getElementById(id).classList.add('hidden');
-
-            if (id === 'modal-edit') {
-                clearEditFilePool();
-            }
+            if (id === 'modal-edit') clearEditFilePool();
         };
 
         window.showPreview = (i, id, type) => {
@@ -2296,7 +2215,9 @@
                 });
             });
 
-            document.getElementById('kpi-money').innerText = "Bs " + rec.toLocaleString('es-BO', { minimumFractionDigits: 2 });
+            /* SIEMPRE número completo (sin abreviar) */
+            document.getElementById('kpi-money').innerText =
+                "Bs " + rec.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
             const ctx1 = document.getElementById('chart-fin').getContext('2d');
             if (window.ch1) window.ch1.destroy();
