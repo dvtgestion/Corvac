@@ -55,7 +55,7 @@
         .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; }
         .input-group input:focus { border-color: var(--accent); outline: none; }
         
-        /* Preview de Dinero (Texto Verde Pequeño) */
+        /* Preview de Dinero */
         .money-preview { font-size: 0.85rem; color: var(--success); font-weight: bold; margin-top: 4px; display: block; }
 
         /* Layout */
@@ -208,14 +208,14 @@
                                 <div class="input-group w-100"><label>Superficie (m²)</label><input type="number" id="t-area"></div>
                                 <div class="input-group w-100">
                                     <label>Moneda</label>
-                                    <select id="t-moeda" onchange="window.showPreview(document.getElementById('t-precio'), 'preview-precio-t', this.value)">
+                                    <select id="t-moneda" onchange="window.showPreview(document.getElementById('t-precio'), 'preview-precio-t', this.value)">
                                         <option value="BOB">Bolivianos (Bs)</option>
                                         <option value="USD">Dólar ($us)</option>
                                     </select>
                                 </div>
                                 <div class="input-group w-100">
                                     <label>Precio Base</label>
-                                    <input type="number" id="t-precio" required min="0" step="0.01" oninput="window.showPreview(this, 'preview-precio-t', document.getElementById('t-moeda').value)">
+                                    <input type="number" id="t-precio" required min="0" step="0.01" oninput="window.showPreview(this, 'preview-precio-t', document.getElementById('t-moneda').value)">
                                     <span id="preview-precio-t" class="money-preview">0,00</span>
                                 </div>
                             </div>
@@ -496,7 +496,7 @@
             const urls = await uploadFiles(document.getElementById('t-files'));
             const data = {
                 codigo: document.getElementById('t-codigo').value, nome: document.getElementById('t-nome').value,
-                area: document.getElementById('t-area').value, moneda: document.getElementById('t-moeda').value,
+                area: document.getElementById('t-area').value, moneda: document.getElementById('t-moneda').value,
                 precio: parseFloat(document.getElementById('t-precio').value), notas: document.getElementById('t-notas').value,
                 fotos: urls, estado: 'Disponible', habilitado: true
             };
@@ -511,7 +511,7 @@
                 if (!t.nome.toLowerCase().includes(f) && !t.codigo.toLowerCase().includes(f)) return;
                 let img = t.fotos && t.fotos.length ? `<img src="${t.fotos[0]}" class="thumb-small" onclick="verDetalles('${t.$id}', 'land')">` : '<div style="width:60px;height:60px;background:#eee;border-radius:4px;"></div>';
                 let btn = t.estado === 'Disponible' ? `<button class="btn btn-p" style="padding:5px 10px" onclick="openVenda('${t.$id}')">Vender</button>` : `<span class="status-badge status-vendido">Vendido</span>`;
-                b.innerHTML += `<tr><td>${img}</td><td><strong>${t.codigo}</strong></td><td>${t.nome}</td><td>${t.moeda} ${new Intl.NumberFormat('es-BO').format(t.precio)}</td><td>${t.estado}</td><td><button class="btn btn-g" onclick="openEdit('${t.$id}', 'land')"><i class="fas fa-edit"></i></button> ${btn} <button class="btn btn-d" onclick="deleteItem('${t.$id}', 'land')"><i class="fas fa-trash"></i></button></td></tr>`;
+                b.innerHTML += `<tr><td>${img}</td><td><strong>${t.codigo}</strong></td><td>${t.nome}</td><td>${t.moneda} ${new Intl.NumberFormat('es-BO').format(t.precio)}</td><td>${t.estado}</td><td><button class="btn btn-g" onclick="openEdit('${t.$id}', 'land')"><i class="fas fa-edit"></i></button> ${btn} <button class="btn btn-d" onclick="deleteItem('${t.$id}', 'land')"><i class="fas fa-trash"></i></button></td></tr>`;
             });
         }
 
@@ -520,7 +520,7 @@
             const t = terrenos.find(x => x.$id === id);
             document.getElementById('v-land-id').value = id;
             document.getElementById('v-land-info').innerText = `${t.codigo} - ${t.nome}`;
-            document.getElementById('lbl-moneda-venda').innerText = t.moeda;
+            document.getElementById('lbl-moneda-venda').innerText = t.moneda;
             
             // Set defaults and triggers
             document.getElementById('v-total').value = t.precio;
@@ -528,8 +528,8 @@
             
             window.calcLive();
             // Trigger preview manually
-            window.showPreview(document.getElementById('v-total'), 'preview-v-total', t.moeda);
-            window.showPreview(document.getElementById('v-entrada'), 'preview-v-entrada', t.moeda);
+            window.showPreview(document.getElementById('v-total'), 'preview-v-total', t.moneda);
+            window.showPreview(document.getElementById('v-entrada'), 'preview-v-entrada', t.moneda);
             
             document.getElementById('modal-venda').classList.remove('hidden');
         }
@@ -555,7 +555,7 @@
             }
             const venda = {
                 cliente: document.getElementById('v-cliente').value, ci: document.getElementById('v-ci').value,
-                fotos: urls, landId: tId, landNome: terreno.nome, moneda: terreno.moeda,
+                fotos: urls, landId: tId, landNome: terreno.nome, moneda: terreno.moneda,
                 total: total, entrada: ent, fecha_entrada: today, cuotas: cuotas, data: new Date().toISOString()
             };
             await db.createDocument(DB_ID, COL_VENDAS, ID.unique(), { dados: JSON.stringify(venda) }, getPermissions());
@@ -576,14 +576,14 @@
                 if (!v.cliente.toLowerCase().includes(f)) return;
 
                 // Histórico (Todos)
-                l2.innerHTML += `<tr><td>${v.$id.substring(0,5)}</td><td>${v.cliente}</td><td>${v.landNome}</td><td>${v.moeda} ${new Intl.NumberFormat('es-BO').format(v.total)}</td><td><button class="btn btn-w" onclick="openEdit('${v.$id}', 'sale')"><i class="fas fa-edit"></i></button> <button class="btn btn-d" onclick="deleteItem('${v.$id}', 'sale')"><i class="fas fa-trash"></i></button></td></tr>`;
+                l2.innerHTML += `<tr><td>${v.$id.substring(0,5)}</td><td>${v.cliente}</td><td>${v.landNome}</td><td>${v.moneda} ${new Intl.NumberFormat('es-BO').format(v.total)}</td><td><button class="btn btn-w" onclick="openEdit('${v.$id}', 'sale')"><i class="fas fa-edit"></i></button> <button class="btn btn-d" onclick="deleteItem('${v.$id}', 'sale')"><i class="fas fa-trash"></i></button></td></tr>`;
 
                 // Verificar si está completo
                 let pendente = v.cuotas.find(c => !c.pago);
                 
                 if (!pendente) {
                     // Completado
-                    l3.innerHTML += `<tr><td>${v.cliente}</td><td>${v.landNome}</td><td style="color:var(--success);font-weight:bold">${v.moeda} ${new Intl.NumberFormat('es-BO').format(v.total)}</td><td><span class="status-badge status-disponible">PAGADO</span></td><td><button class="btn btn-g" onclick="openEdit('${v.$id}', 'sale')">Ver</button></td></tr>`;
+                    l3.innerHTML += `<tr><td>${v.cliente}</td><td>${v.landNome}</td><td style="color:var(--success);font-weight:bold">${v.moneda} ${new Intl.NumberFormat('es-BO').format(v.total)}</td><td><span class="status-badge status-disponible">PAGADO</span></td><td><button class="btn btn-g" onclick="openEdit('${v.$id}', 'sale')">Ver</button></td></tr>`;
                 } else {
                     // Cobranza (Pendiente)
                     let cor = new Date(pendente.venc) < new Date() ? 'red' : '#333';
@@ -684,7 +684,7 @@
             let imgs = ''; if(d.fotos) d.fotos.forEach(u => imgs += `<img src="${u}" class="img-full" onclick="window.open('${u}')">`);
             const c = document.getElementById('detalles-contenido');
             c.innerHTML = (type === 'land') ? 
-                `<h2>${d.nome}</h2><p><strong>Precio:</strong> ${d.moeda} ${new Intl.NumberFormat('es-BO').format(d.precio)}</p><p><strong>Estado:</strong> ${d.estado}</p><p>${d.notas}</p><hr>${imgs}` : 
+                `<h2>${d.nome}</h2><p><strong>Precio:</strong> ${d.moneda} ${new Intl.NumberFormat('es-BO').format(d.precio)}</p><p><strong>Estado:</strong> ${d.estado}</p><p>${d.notas}</p><hr>${imgs}` : 
                 `<h2>${d.cliente}</h2><p><strong>CI:</strong> ${d.ci}</p><hr>${imgs}`;
             document.getElementById('modal-detalles').classList.remove('hidden');
         }
