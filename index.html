@@ -607,7 +607,7 @@
                             </div>
                             <div class="input-group">
                                 <label><i class="fas fa-camera"></i> Fotos y Documentos (PDF)</label>
-                                <input type="file" id="t-files" multiple accept="image/*, .pdf">
+                                <input type="file" id="t-files" multiple accept="image/*,application/pdf,.pdf">
                             </div>
                             <div class="input-group">
                                 <label>Notas Adicionales</label>
@@ -719,7 +719,7 @@
                 </div>
                 <div class="input-group">
                     <label>Documentos (Fotos/PDF)</label>
-                    <input type="file" id="v-files" multiple accept="image/*, .pdf">
+                    <input type="file" id="v-files" multiple accept="image/*,application/pdf,.pdf">
                 </div>
                 <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
                 <div class="flex gap-2">
@@ -803,7 +803,7 @@
 
                 <div class="input-group" style="margin-top:15px;">
                     <label><i class="fas fa-plus"></i> Agregar archivos</label>
-                    <input type="file" id="e-new-files" multiple accept="image/*, .pdf">
+                    <input type="file" id="e-new-files" multiple accept="image/*,application/pdf,.pdf">
                 </div>
 
                 <div class="text-right" style="margin-top:20px;">
@@ -1010,8 +1010,8 @@
             try { filesInput.value = ''; } catch (_) {}
             return filesData;
         }
-
-        // ------------------------------
+        
+                // ------------------------------
         // TERRENOS
         // ------------------------------
         document.getElementById('form-terreno').addEventListener('submit', async (e) => {
