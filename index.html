@@ -536,6 +536,30 @@
             border-color: rgba(243,156,18,0.28);
         }
 
+        /* Total deuda bar (filtro deudores) */
+        .debt-total-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 12px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            background: rgba(15,23,42,0.04);
+            border: 1px solid rgba(15,23,42,0.10);
+            box-shadow: 0 10px 22px rgba(0,0,0,0.06);
+            flex-wrap: wrap;
+        }
+        .debt-total-bar strong {
+            font-weight: 950;
+            color: #0f172a;
+        }
+        .debt-total-value {
+            font-weight: 950;
+            color: var(--danger);
+            font-size: 1.08rem;
+        }
+
         /* Row colors for cobranzas table */
         .row-overdue { background: rgba(192,57,43,0.10) !important; }
         .row-near { background: rgba(243,156,18,0.14) !important; }
@@ -1059,9 +1083,24 @@
                             <!-- ALERTAS TOP -->
                             <div id="ventas-alerts" class="alerts-wrap hidden"></div>
 
-                            <input type="text" id="search-venda" placeholder="Buscar cliente..."
-                                   style="width:100%; padding:11px 12px; margin-bottom:12px; border:1px solid rgba(15,23,42,0.14); border-radius:14px;"
-                                   onkeyup="renderVendas()">
+                            <!-- FILTRO + BUSCADOR -->
+                            <div class="flex gap-2" style="flex-wrap:wrap; margin-bottom:12px;">
+                                <input type="text" id="search-venda" placeholder="Buscar cliente..."
+                                       style="flex:1; min-width:220px; padding:11px 12px; border:1px solid rgba(15,23,42,0.14); border-radius:14px;"
+                                       onkeyup="renderVendas()">
+
+                                <select id="filter-cobranzas" onchange="renderVendas()"
+                                        style="padding:11px 12px; border:1px solid rgba(15,23,42,0.14); border-radius:14px; background:rgba(255,255,255,0.92); font-weight:900; color:#0f172a;">
+                                    <option value="all">Todas</option>
+                                    <option value="debts">Solo deudores</option>
+                                </select>
+                            </div>
+
+                            <!-- TOTAL DEUDA (solo cuando filtro = deudores) -->
+                            <div id="ventas-debt-total" class="debt-total-bar hidden">
+                                <strong><i class="fas fa-scale-balanced" style="color:var(--danger);"></i> Deuda total (Ref. Bs)</strong>
+                                <span id="ventas-debt-total-value" class="debt-total-value">Bs 0,00</span>
+                            </div>
 
                             <div class="table-wrap">
                                 <table>
@@ -1308,7 +1347,7 @@
         let editPoolSetupDone = false;
 
         /* Config: alerta de "perto do vencimento" */
-        const ALERT_DAYS = 3; /* você pode trocar para 5 ou 7 se quiser */
+        const ALERT_DAYS = 7; /* agora é 7 dias */
 
         function fileKey(f) {
             try { return `${f.name || ''}|${f.size || 0}|${f.lastModified || 0}`; }
@@ -1465,7 +1504,8 @@
 
         /* (continua na PARTE 2/2) */
         
-                function renderTerrenoFilePool() {
+        
+            function renderTerrenoFilePool() {
             const box = document.getElementById('t-files-pool');
             const counter = document.getElementById('t-files-count');
             if (!box || !counter) return;
@@ -2139,8 +2179,20 @@
             return Math.floor(diff / 86400000);
         }
 
+        function getRemainingDebtRefBs(v) {
+            let rem = 0;
+            try {
+                (v.cuotas || []).forEach(c => {
+                    if (!c.pago) rem += (parseFloat(c.valor) || 0);
+                });
+            } catch (_) {}
+            if (String(v.moneda || '').toUpperCase() === 'USD') rem *= 6.96;
+            return rem;
+        }
+
         function buildCobranzasListFiltered() {
             const f = document.getElementById('search-venda').value.toLowerCase();
+            const mode = (document.getElementById('filter-cobranzas')?.value || 'all');
 
             let list = [];
             vendas.forEach(v => {
@@ -2150,17 +2202,28 @@
                 if (!pendente) return;
 
                 const dd = daysDiffFromToday(pendente.venc);
-                const isOverdue = (dd !== null && dd < 0);
-                const isNear = (dd !== null && dd >= 0 && dd <= ALERT_DAYS);
 
-                list.push({
+                /* REGRA NOVA:
+                   - overdue = dd <= 0  (hoje já entra vermelho)
+                   - near = dd > 0 && dd <= ALERT_DAYS
+                */
+                const isOverdue = (dd !== null && dd <= 0);
+                const isNear = (dd !== null && dd > 0 && dd <= ALERT_DAYS);
+
+                const item = {
                     v,
                     pendente,
                     days: dd,
                     overdue: isOverdue,
                     near: isNear
-                });
+                };
+
+                list.push(item);
             });
+
+            if (mode === 'debts') {
+                list = list.filter(x => x.overdue);
+            }
 
             list.sort((a, b) => {
                 const aRank = a.overdue ? 0 : (a.near ? 1 : 2);
@@ -2174,6 +2237,25 @@
             });
 
             return list;
+        }
+
+        function renderDebtTotalIfNeeded(cobranzasList) {
+            const mode = (document.getElementById('filter-cobranzas')?.value || 'all');
+            const bar = document.getElementById('ventas-debt-total');
+            const val = document.getElementById('ventas-debt-total-value');
+            if (!bar || !val) return;
+
+            if (mode !== 'debts') {
+                bar.classList.add('hidden');
+                val.innerText = 'Bs 0,00';
+                return;
+            }
+
+            let totalRef = 0;
+            cobranzasList.forEach(x => { totalRef += getRemainingDebtRefBs(x.v); });
+
+            val.innerText = 'Bs ' + totalRef.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            bar.classList.remove('hidden');
         }
 
         function renderVentasAlerts(cobranzasList) {
@@ -2196,11 +2278,12 @@
                 let itemsHtml = '';
                 overdueList.slice(0, 12).forEach(x => {
                     const monto = `${x.v.moneda} ${new Intl.NumberFormat('es-BO').format(x.pendente.valor)}`;
+                    const tag = (x.days === 0) ? '(vence hoy)' : '(vencida)';
                     itemsHtml += `
                         <div class="alert-pill" onclick="openPagar('${x.v.$id}', ${x.pendente.n})" title="Cobrar ahora">
                             <i class="fas fa-triangle-exclamation" style="color:var(--danger)"></i>
                             <span>${x.v.cliente} • ${x.v.landNome} • ${x.pendente.venc} • ${monto}</span>
-                            <span style="opacity:0.75;">(vencida)</span>
+                            <span style="opacity:0.75;">${tag}</span>
                         </div>
                     `;
                 });
@@ -2209,7 +2292,6 @@
                     <div class="alert-bar alert-red">
                         <div class="alert-title">
                             <span><i class="fas fa-circle-exclamation" style="color:var(--danger)"></i> Cobranza vencida: <strong>${overdueList.length}</strong></span>
-                            <span style="font-weight:900; color:#334155;">(aparecen arriba en la tabla)</span>
                         </div>
                         <div class="alert-items">${itemsHtml}</div>
                         ${overdueList.length > 12 ? `<div style="font-weight:900; color:#334155;">Mostrando 12 de ${overdueList.length}…</div>` : ``}
@@ -2221,7 +2303,7 @@
                 let itemsHtml = '';
                 nearList.slice(0, 12).forEach(x => {
                     const monto = `${x.v.moneda} ${new Intl.NumberFormat('es-BO').format(x.pendente.valor)}`;
-                    const ddTxt = (x.days === 0) ? 'hoy' : `${x.days} día(s)`;
+                    const ddTxt = `${x.days} día(s)`;
                     itemsHtml += `
                         <div class="alert-pill" onclick="openPagar('${x.v.$id}', ${x.pendente.n})" title="Cobrar / revisar">
                             <i class="fas fa-bell" style="color:var(--warning)"></i>
@@ -2234,8 +2316,7 @@
                 wrap.innerHTML += `
                     <div class="alert-bar alert-yellow">
                         <div class="alert-title">
-                            <span><i class="fas fa-bell" style="color:var(--warning)"></i> Próximas a vencer (≤ ${ALERT_DAYS} días): <strong>${nearList.length}</strong></span>
-                            <span style="font-weight:900; color:#334155;">(aparecen arriba en la tabla)</span>
+                            <span><i class="fas fa-bell" style="color:var(--warning)"></i> Próximas a vencer: <strong>${nearList.length}</strong></span>
                         </div>
                         <div class="alert-items">${itemsHtml}</div>
                         ${nearList.length > 12 ? `<div style="font-weight:900; color:#334155;">Mostrando 12 de ${nearList.length}…</div>` : ``}
@@ -2252,7 +2333,7 @@
 
             const f = document.getElementById('search-venda').value.toLowerCase();
 
-            // Histórico e completados continuam como antes (baseado no filtro)
+            // Histórico e completados (mantém)
             vendas.forEach(v => {
                 if (!v.cliente.toLowerCase().includes(f)) return;
 
@@ -2279,8 +2360,9 @@
                 }
             });
 
-            // Cobranzas: agora ordenado + cores + topo + alertas
+            // Cobranzas: ordenado + cores + topo + alertas + filtro deudores + total deuda
             const cobranzasList = buildCobranzasListFiltered();
+            renderDebtTotalIfNeeded(cobranzasList);
             renderVentasAlerts(cobranzasList);
 
             cobranzasList.forEach(item => {
@@ -2291,8 +2373,12 @@
                 const rowClass = item.overdue ? 'row-overdue' : (item.near ? 'row-near' : '');
 
                 let labelExtra = '';
-                if (item.overdue) labelExtra = `<span class="status-badge" style="background:rgba(192,57,43,0.12); border:1px solid rgba(192,57,43,0.22); color:#7f1d1d;"><i class="fas fa-circle-exclamation"></i> VENCIDA</span>`;
-                else if (item.near) labelExtra = `<span class="status-badge" style="background:rgba(243,156,18,0.18); border:1px solid rgba(243,156,18,0.28); color:#92400e;"><i class="fas fa-bell"></i> PRONTO</span>`;
+                if (item.overdue) {
+                    const txt = (item.days === 0) ? 'VENCE HOY' : 'VENCIDA';
+                    labelExtra = `<span class="status-badge" style="background:rgba(192,57,43,0.12); border:1px solid rgba(192,57,43,0.22); color:#7f1d1d;"><i class="fas fa-circle-exclamation"></i> ${txt}</span>`;
+                } else if (item.near) {
+                    labelExtra = `<span class="status-badge" style="background:rgba(243,156,18,0.18); border:1px solid rgba(243,156,18,0.28); color:#92400e;"><i class="fas fa-bell"></i> PRONTO</span>`;
+                }
 
                 l1.innerHTML += `<tr class="${rowClass}">
                     <td><strong>${v.cliente}</strong></td>
