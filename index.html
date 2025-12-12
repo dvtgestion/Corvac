@@ -3127,7 +3127,7 @@
                     <td style="display:flex; gap:8px; flex-wrap:wrap;">
                         <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')"><i class="fas fa-edit"></i></button>
                         <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" title="Ver detalles"><i class="fas fa-eye"></i></button>
-                    <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openReportePagosCliente('${v.$id}')" title="Reporte de pagos"><i class="fas fa-file-invoice-dollar"></i></button>
+                    <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); window.openReportePagosCliente('${v.$id}')" title="Reporte de pagos"><i class="fas fa-file-invoice-dollar"></i></button>
                         ${hasDebt ? `<button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openRenegociar('${v.$id}')" title="Renegociar deuda"><i class="fas fa-arrows-rotate"></i></button>` : ``}
                         <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')"><i class="fas fa-trash"></i></button>
                     </td>
