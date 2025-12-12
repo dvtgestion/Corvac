@@ -68,6 +68,10 @@
             font-size: 0.92rem;
             letter-spacing: 0.2px;
             box-shadow: 0 10px 22px rgba(0,0,0,0.12);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         .btn:hover { transform: translateY(-1px); opacity: 0.95; }
         .btn:active { transform: translateY(0px); opacity: 0.92; }
@@ -78,6 +82,8 @@
         .btn-w { background: linear-gradient(135deg, #f1c40f, var(--warning)); color: #2c3e50; }
         .btn-g { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
         .btn-sm { padding: 7px 12px; font-size: 0.82rem; border-radius: 9px; }
+
+        .mobile-only { display: none; }
 
         #loader {
             position: fixed;
@@ -227,6 +233,16 @@
             background: radial-gradient(1200px 600px at 20% 5%, rgba(41,128,185,0.12), transparent 65%),
                         radial-gradient(900px 500px at 85% 18%, rgba(39,174,96,0.10), transparent 55%),
                         linear-gradient(180deg, #f7fafc, #eef2f7);
+            position: relative;
+        }
+
+        /* Overlay mobile para drawer */
+        #mobile-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(2,6,23,0.55);
+            z-index: 2050;
+            backdrop-filter: blur(4px);
         }
 
         aside {
@@ -237,6 +253,7 @@
             flex-direction: column;
             box-shadow: 10px 0 35px rgba(0,0,0,0.16);
             border-right: 1px solid rgba(255,255,255,0.06);
+            z-index: 2100;
         }
 
         aside h3 {
@@ -305,6 +322,7 @@
             flex-direction: column;
             overflow: hidden;
             background: transparent;
+            min-width: 0;
         }
 
         header {
@@ -316,6 +334,7 @@
             box-shadow: var(--shadowSoft);
             border-bottom: 1px solid rgba(15,23,42,0.06);
             backdrop-filter: blur(10px);
+            gap: 10px;
         }
 
         #page-title { font-weight: 950; letter-spacing: 0.2px; }
@@ -324,6 +343,7 @@
             flex: 1;
             padding: 18px;
             overflow-y: auto;
+            min-width: 0;
         }
 
         .card {
@@ -334,6 +354,15 @@
             margin-bottom: 16px;
             border: 1px solid rgba(15,23,42,0.06);
             backdrop-filter: blur(10px);
+            min-width: 0;
+        }
+
+        /* Wrapper para tablas responsive */
+        .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 14px;
         }
 
         table {
@@ -342,6 +371,7 @@
             margin-top: 10px;
             overflow: hidden;
             border-radius: 14px;
+            min-width: 760px;
         }
 
         th, td {
@@ -349,6 +379,7 @@
             text-align: left;
             border-bottom: 1px solid #eef2f7;
             vertical-align: middle;
+            white-space: nowrap;
         }
 
         th {
@@ -549,6 +580,7 @@
             box-shadow: var(--shadow);
             border: 1px solid rgba(15,23,42,0.10);
             backdrop-filter: blur(10px);
+            min-width: 0;
         }
 
         .modal-header {
@@ -558,6 +590,7 @@
             margin-bottom: 12px;
             border-bottom: 1px solid rgba(15,23,42,0.08);
             padding-bottom: 10px;
+            gap: 10px;
         }
 
         .close-modal {
@@ -627,16 +660,37 @@
         .hint-box small { display:block; margin-top:4px; font-weight:700; color:#334155; opacity:0.85; }
 
         @media (max-width: 860px) {
-            aside { width: 240px; }
+            aside { width: 255px; }
             #content { padding: 14px; }
             .card { padding: 14px; }
+            table { min-width: 720px; }
         }
 
+        /* Mobile real: drawer + tablas scroll */
         @media (max-width: 700px) {
-            #app-container { flex-direction: column; }
-            aside { width: 100%; }
-            .menu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-            .menu button { margin-bottom: 0; }
+            .mobile-only { display: inline-flex; }
+
+            aside {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-105%);
+                transition: transform 0.2s ease;
+            }
+
+            #app-container.mobile-menu-open aside {
+                transform: translateX(0%);
+            }
+
+            header { padding: 12px 12px; }
+            #content { padding: 12px; }
+
+            .menu { padding: 10px; }
+
+            table { min-width: 780px; }
+
+            .modal-content { max-width: 96vw; }
         }
     </style>
 </head>
@@ -677,6 +731,7 @@
     </div>
 
     <div id="app-container" class="hidden">
+        <div id="mobile-overlay" class="hidden" onclick="closeMobileMenu()"></div>
 
         <aside>
             <h3><i class="fas fa-city"></i> Corvacruz Panel</h3>
@@ -690,8 +745,14 @@
 
         <main>
             <header>
-                <h3 id="page-title" style="color:#0f172a">Resumen General</h3>
-                <div class="flex" style="align-items:center; gap:12px; flex-wrap:wrap;">
+                <div class="flex items-center gap-2" style="min-width:0;">
+                    <button class="btn btn-g btn-sm mobile-only" onclick="toggleMobileMenu()" title="Menú">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h3 id="page-title" style="color:#0f172a; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Resumen General</h3>
+                </div>
+
+                <div class="flex items-center" style="gap:12px; flex-wrap:wrap;">
                     <span id="user-email-display" style="font-weight:900; color:#334155;"></span>
                     <button onclick="logout()" class="btn btn-g btn-sm"><i class="fas fa-sign-out-alt"></i> Salir</button>
                 </div>
@@ -813,20 +874,23 @@
                                    style="padding:11px 12px; width:320px; max-width:100%; border:1px solid rgba(15,23,42,0.14); border-radius:14px;"
                                    onkeyup="renderTerrenos()">
                         </div>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Archivos</th>
-                                    <th>Código</th>
-                                    <th>Nombre</th>
-                                    <th>Superficie</th>
-                                    <th>Precio</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="lista-terrenos"></tbody>
-                        </table>
+
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Archivos</th>
+                                        <th>Código</th>
+                                        <th>Nombre</th>
+                                        <th>Superficie</th>
+                                        <th>Precio</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lista-terrenos"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -843,50 +907,57 @@
                             <input type="text" id="search-venda" placeholder="Buscar cliente..."
                                    style="width:100%; padding:11px 12px; margin-bottom:12px; border:1px solid rgba(15,23,42,0.14); border-radius:14px;"
                                    onkeyup="renderVendas()">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Cliente</th>
-                                        <th>Terreno</th>
-                                        <th>Cuota</th>
-                                        <th>Vencimiento</th>
-                                        <th>Monto</th>
-                                        <th>Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="lista-cobrancas"></tbody>
-                            </table>
+
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Cliente</th>
+                                            <th>Terreno</th>
+                                            <th>Cuota</th>
+                                            <th>Vencimiento</th>
+                                            <th>Monto</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lista-cobrancas"></tbody>
+                                </table>
+                            </div>
                         </div>
 
                         <div id="tab-vendas-completos" class="hidden">
                             <h4 style="margin-bottom:10px; color:var(--success); font-weight:950;">Pagos Finalizados</h4>
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Cliente</th>
-                                        <th>Terreno</th>
-                                        <th>Total Pagado</th>
-                                        <th>Estado</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="lista-completos"></tbody>
-                            </table>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Cliente</th>
+                                            <th>Terreno</th>
+                                            <th>Total Pagado</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lista-completos"></tbody>
+                                </table>
+                            </div>
                         </div>
 
                         <div id="tab-vendas-hist" class="hidden">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Cliente</th>
-                                        <th>Terreno</th>
-                                        <th>Total</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="lista-historico"></tbody>
-                            </table>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Cliente</th>
+                                            <th>Terreno</th>
+                                            <th>Total</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lista-historico"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -914,7 +985,6 @@
 
                 <div class="input-group">
                     <label>Documentos (Fotos/PDF)</label>
-                    <!-- FIX: este input también acumula via pool -->
                     <input type="file" id="v-files" multiple accept="image/*,.pdf">
                     <div class="hint-box">
                         Selecciona archivos uno por uno (imagen, luego PDF, etc.)
@@ -1092,6 +1162,32 @@
             const name = String(file?.name || '').toLowerCase();
             return name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png') || name.endsWith('.webp') || name.endsWith('.gif') || name.endsWith('.heic') || name.endsWith('.heif') || name.endsWith('.bmp') || name.endsWith('.svg');
         }
+
+        // ------------------------------
+        // MOBILE MENU (drawer)
+        // ------------------------------
+        function isMobile() {
+            try { return window.matchMedia && window.matchMedia('(max-width: 700px)').matches; }
+            catch (_) { return false; }
+        }
+
+        window.toggleMobileMenu = () => {
+            const app = document.getElementById('app-container');
+            const ov = document.getElementById('mobile-overlay');
+            if (!app || !ov) return;
+
+            const open = !app.classList.contains('mobile-menu-open');
+            app.classList.toggle('mobile-menu-open', open);
+            ov.classList.toggle('hidden', !open);
+        };
+
+        window.closeMobileMenu = () => {
+            const app = document.getElementById('app-container');
+            const ov = document.getElementById('mobile-overlay');
+            if (!app || !ov) return;
+            app.classList.remove('mobile-menu-open');
+            ov.classList.add('hidden');
+        };
 
         // ------------------------------
         // RENDER POOL: REGISTRO
@@ -1272,7 +1368,6 @@
             vendaFilePool = [];
             renderVendaFilePool();
 
-            // also clear input for safety
             const input = document.getElementById('v-files');
             try { if (input) input.value = ''; } catch (_) {}
         };
@@ -1445,7 +1540,7 @@
                 document.getElementById('user-email-display').innerText = user.email;
                 initDateFilters();
                 setupTerrenoPoolInput();
-                setupVendaPoolInput(); // <-- FIX: activa el pool en venta
+                setupVendaPoolInput();
                 loadData();
             } catch (e) {
                 console.log("Login necesario");
@@ -1636,15 +1731,14 @@
             });
         }
 
-        // (continua en la PARTE 2/2)
+        // (continúa en la PARTE 2/2)
         
                 // ------------------------------
-        // VENTAS (FIX: usa pool acumulado también)
+        // VENTAS (usa pool acumulado también)
         // ------------------------------
         window.openVenda = (id) => {
             const t = terrenos.find(x => x.$id === id);
 
-            // FIX: limpiar pool cada vez que abre el modal de venta
             clearVendaFilePool();
 
             document.getElementById('v-land-id').value = id;
@@ -1656,9 +1750,7 @@
             window.showPreview(document.getElementById('v-total'), 'preview-v-total', t.moneda);
             window.showPreview(document.getElementById('v-entrada'), 'preview-v-entrada', t.moneda);
 
-            // refresh view pool
             renderVendaFilePool();
-
             document.getElementById('modal-venda').classList.remove('hidden');
         };
 
@@ -1669,7 +1761,6 @@
             const tId = document.getElementById('v-land-id').value;
             const terreno = terrenos.find(x => x.$id === tId);
 
-            // FIX: subir TODO lo acumulado en el pool de venta
             const uploaded = await uploadFiles(vendaFilePool);
 
             const total = parseFloat(document.getElementById('v-total').value);
@@ -1701,7 +1792,10 @@
                 entrada: ent,
                 fecha_entrada: today,
                 cuotas: cuotas,
-                data: new Date().toISOString()
+                data: new Date().toISOString(),
+
+                // (opcional, pero ya listo para notas futuras)
+                notas: ""
             };
 
             await db.createDocument(DB_ID, COL_VENDAS, ID.unique(), { dados: JSON.stringify(venda) }, getPermissions());
@@ -1710,9 +1804,7 @@
             terreno.fotos = normalizeFotos(terreno.fotos);
             await db.updateDocument(DB_ID, COL_TERRENOS, tId, { dados: JSON.stringify(terreno) });
 
-            // FIX: limpiar pool cuando termina
             clearVendaFilePool();
-
             closeModal('modal-venda');
             loadData();
         });
@@ -1811,7 +1903,7 @@
         });
 
         // ------------------------------
-        // EDICIÓN Y DETALLES
+        // EDICIÓN Y DETALLES (FIX NOTAS EN VENTAS)
         // ------------------------------
         window.openEdit = (id, type) => {
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
@@ -1821,7 +1913,9 @@
             document.getElementById('e-type').value = type;
             document.getElementById('e-nome').value = (type === 'land') ? d.nome : d.cliente;
             document.getElementById('e-valor').value = (type === 'land') ? d.precio : d.total;
-            document.getElementById('e-notas').value = (type === 'land') ? (d.notas || '') : '';
+
+            // FIX: ahora las notas también se cargan en ventas
+            document.getElementById('e-notas').value = (d.notas || '');
 
             const g = document.getElementById('e-gallery');
             g.innerHTML = '';
@@ -1879,12 +1973,18 @@
             const newFiles = await uploadFiles(document.getElementById('e-new-files'));
             d.fotos = [...d.fotos, ...normalizeFotos(newFiles)];
 
+            // FIX: guardar notas tanto en land como en sale
+            d.notas = document.getElementById('e-notas').value;
+
             if (type === 'land') {
                 d.nome = document.getElementById('e-nome').value;
                 d.precio = parseFloat(document.getElementById('e-valor').value);
-                d.notas = document.getElementById('e-notas').value;
             } else {
                 d.cliente = document.getElementById('e-nome').value;
+
+                // (bonus útil) si editas el total en ventas, ahora también guarda:
+                const newTotal = parseFloat(document.getElementById('e-valor').value);
+                if (!isNaN(newTotal)) d.total = newTotal;
             }
 
             await db.updateDocument(DB_ID, (type === 'land' ? COL_TERRENOS : COL_VENDAS), id, { dados: JSON.stringify(d) });
@@ -1933,16 +2033,25 @@
             });
 
             const c = document.getElementById('detalles-contenido');
-            c.innerHTML = (type === 'land')
-                ? `<h2 style="font-weight:950; color:#0f172a; margin-bottom:8px;">${d.nome}</h2>
+
+            if (type === 'land') {
+                c.innerHTML = `<h2 style="font-weight:950; color:#0f172a; margin-bottom:8px;">${d.nome}</h2>
                    <p style="font-weight:900; color:#334155;"><strong>Precio:</strong> ${d.moneda} ${new Intl.NumberFormat('es-BO').format(d.precio)}</p>
                    <p style="font-weight:900; color:#334155;"><strong>Superficie:</strong> ${new Intl.NumberFormat('es-BO').format(d.area)} m²</p>
                    <p style="font-weight:900; color:#334155;"><strong>Estado:</strong> ${d.estado}</p>
                    <p style="color:#334155; margin-top:6px;">${d.notas || ''}</p>
-                   <hr style="margin:12px 0; border:0; border-top:1px solid rgba(15,23,42,0.08);">${mediaHtml}`
-                : `<h2 style="font-weight:950; color:#0f172a; margin-bottom:8px;">${d.cliente}</h2>
-                   <p style="font-weight:900; color:#334155;"><strong>CI:</strong> ${d.ci || ''}</p>
                    <hr style="margin:12px 0; border:0; border-top:1px solid rgba(15,23,42,0.08);">${mediaHtml}`;
+            } else {
+                // FIX: mostrar notas también en ventas
+                const notasHtml = (d.notas && String(d.notas).trim())
+                    ? `<p style="color:#334155; margin-top:6px;"><strong>Notas:</strong> ${d.notas}</p>`
+                    : '';
+
+                c.innerHTML = `<h2 style="font-weight:950; color:#0f172a; margin-bottom:8px;">${d.cliente}</h2>
+                   <p style="font-weight:900; color:#334155;"><strong>CI:</strong> ${d.ci || ''}</p>
+                   ${notasHtml}
+                   <hr style="margin:12px 0; border:0; border-top:1px solid rgba(15,23,42,0.08);">${mediaHtml}`;
+            }
 
             document.getElementById('modal-detalles').classList.remove('hidden');
         };
@@ -1961,6 +2070,9 @@
 
             if (v === 'listado') renderTerrenos();
             if (v === 'ventas') renderVendas();
+
+            // FIX: cerrar drawer al navegar en celular
+            if (isMobile()) closeMobileMenu();
         };
 
         window.switchVendas = (t) => {
@@ -1970,7 +2082,10 @@
             document.getElementById('tab-vendas-' + t).classList.remove('hidden');
         };
 
-        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
+        window.closeModal = (id) => {
+            document.getElementById(id).classList.add('hidden');
+            if (id === 'modal-venda' && isMobile()) { /* no-op */ }
+        };
 
         window.showPreview = (i, id, type) => {
             let val = parseFloat(i.value);
