@@ -475,6 +475,13 @@
             border: 1px solid rgba(100,116,139,0.35);
         }
 
+        /* --- NUEVO: Estado Reservado --- */
+        .status-reservado {
+            background: rgba(243,156,18,0.18);
+            color: #92400e;
+            border: 1px solid rgba(243,156,18,0.32);
+        }
+
         /* Alertas de cobranzas (top) */
         .alerts-wrap {
             display: flex;
@@ -1215,8 +1222,8 @@
             </div>
         </main>
     </div>
-
-    <div id="modal-venda" class="modal hidden">
+    
+        <div id="modal-venda" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 style="font-weight:950; color:#0f172a;">Realizar Venta</h3>
@@ -1224,6 +1231,10 @@
             </div>
             <form id="form-venda">
                 <input type="hidden" id="v-land-id">
+                <p id="v-reserva-warning" class="hidden" style="background:rgba(243,156,18,0.16); border:1px solid rgba(243,156,18,0.26); padding:12px; border-radius:14px; margin-bottom:12px; font-weight:900; color:#92400e;">
+                    <i class="fas fa-bookmark"></i> Este terreno está <strong>RESERVADO</strong>.
+                    <span id="v-reserva-warning-txt"></span>
+                </p>
                 <p style="background:rgba(41,128,185,0.08); border:1px solid rgba(41,128,185,0.14); padding:12px; border-radius:14px; margin-bottom:12px; font-weight:900;">
                     Terreno: <strong id="v-land-info"></strong>
                 </p>
@@ -1235,11 +1246,11 @@
                 </div>
 
                 <div class="flex gap-2" style="flex-wrap:wrap;">
-                    <div class="input-group w-100"><label>Cliente</label><input type="text" id="v-cliente" required></div>
-                    <div class="input-group w-100"><label>CI/Doc</label><input type="text" id="v-ci"></div>
+                    <div class="input-group w-100" style="margin-bottom:0;"><label>Cliente</label><input type="text" id="v-cliente" required></div>
+                    <div class="input-group w-100" style="margin-bottom:0;"><label>CI/Doc</label><input type="text" id="v-ci"></div>
                 </div>
 
-                <div class="input-group">
+                <div class="input-group" style="margin-top:14px;">
                     <label>Documentos (Fotos/PDF)</label>
                     <input type="file" id="v-files" multiple accept="image/*,.pdf">
                     <div class="hint-box">
@@ -1301,6 +1312,49 @@
                 <div class="text-right" style="margin-top:16px; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
                     <button type="button" onclick="closeModal('modal-venda')" class="btn btn-g">Cancelar</button>
                     <button type="submit" class="btn btn-p">Confirmar Venta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- NUEVO: MODAL RESERVA -->
+    <div id="modal-reserva" class="modal hidden">
+        <div class="modal-content" style="max-width:520px;">
+            <div class="modal-header">
+                <h3 style="font-weight:950; color:#0f172a;">Reservar Terreno</h3>
+                <button class="close-modal" onclick="closeModal('modal-reserva')">&times;</button>
+            </div>
+
+            <form id="form-reserva">
+                <input type="hidden" id="r-land-id">
+
+                <p style="background:rgba(243,156,18,0.14); border:1px solid rgba(243,156,18,0.22); padding:12px; border-radius:14px; margin-bottom:12px; font-weight:900; color:#92400e;">
+                    <i class="fas fa-bookmark"></i> Terreno: <strong id="r-land-info"></strong>
+                </p>
+
+                <div class="input-group">
+                    <label>Cliente (Reserva)</label>
+                    <input type="text" id="r-cliente" required placeholder="Nombre del cliente">
+                </div>
+
+                <div class="input-group">
+                    <label>CI/Doc</label>
+                    <input type="text" id="r-ci" placeholder="Documento">
+                </div>
+
+                <div class="input-group">
+                    <label>Fecha de Reserva</label>
+                    <input type="date" id="r-fecha" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Notas (Reserva)</label>
+                    <textarea id="r-notas" rows="3" placeholder="Observaciones sobre la reserva..."></textarea>
+                </div>
+
+                <div class="text-right" style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-g" onclick="closeModal('modal-reserva')">Cancelar</button>
+                    <button type="submit" class="btn btn-w"><i class="fas fa-bookmark"></i> Confirmar Reserva</button>
                 </div>
             </form>
         </div>
@@ -1590,8 +1644,8 @@
                 }
             }, { passive: true });
         }
-
-        function renderTerrenoFilePool() {
+        
+                function renderTerrenoFilePool() {
             const box = document.getElementById('t-files-pool');
             const counter = document.getElementById('t-files-count');
             if (!box || !counter) return;
@@ -2098,7 +2152,6 @@
             }
         };
 
-
         function getPermissions() {
             if (!user) return [];
             return [
@@ -2162,6 +2215,10 @@
                 terrenos = tRes.documents.map(d => {
                     const parsed = JSON.parse(d.dados);
                     parsed.fotos = normalizeFotos(parsed.fotos);
+
+                    // Garantiza estructura de reserva
+                    if (parsed.reserva === undefined) parsed.reserva = null;
+
                     return { $id: d.$id, ...parsed };
                 });
 
@@ -2234,7 +2291,8 @@
                 notas: document.getElementById('t-notas').value,
                 fotos: normalizeFotos(uploaded),
                 estado: 'Disponible',
-                habilitado: true
+                habilitado: true,
+                reserva: null
             };
 
             await db.createDocument(DB_ID, COL_TERRENOS, ID.unique(), { dados: JSON.stringify(data) }, getPermissions());
@@ -2245,6 +2303,80 @@
             nav('listado');
             loadData();
         });
+
+        // ------------------------------
+        // RESERVA: abrir / guardar / liberar
+        // ------------------------------
+        window.openReserva = (id) => {
+            try {
+                const t = terrenos.find(x => x.$id === id);
+                if (!t) { alert('Terreno no encontrado.'); return; }
+
+                document.getElementById('r-land-id').value = id;
+                document.getElementById('r-land-info').innerText = `${t.codigo} - ${t.nome}`;
+
+                const today = new Date().toISOString().split('T')[0];
+                const r = t.reserva || null;
+
+                document.getElementById('r-cliente').value = (r && r.cliente) ? r.cliente : '';
+                document.getElementById('r-ci').value = (r && r.ci) ? r.ci : '';
+                document.getElementById('r-fecha').value = (r && r.fecha) ? r.fecha : today;
+                document.getElementById('r-notas').value = (r && r.notas) ? r.notas : '';
+
+                document.getElementById('modal-reserva').classList.remove('hidden');
+            } catch (err) {
+                console.error('openReserva error', err);
+                alert('Error abriendo reserva: ' + (err && err.message ? err.message : err));
+            }
+        };
+
+        document.getElementById('form-reserva').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            document.getElementById('loader').classList.remove('hidden');
+
+            const id = document.getElementById('r-land-id').value;
+            const t = terrenos.find(x => x.$id === id);
+            if (!t) { document.getElementById('loader').classList.add('hidden'); alert('Terreno no encontrado.'); return; }
+
+            const reserva = {
+                cliente: document.getElementById('r-cliente').value,
+                ci: document.getElementById('r-ci').value,
+                fecha: document.getElementById('r-fecha').value,
+                notas: document.getElementById('r-notas').value
+            };
+
+            t.reserva = reserva;
+            t.estado = 'Reservado';
+
+            t.fotos = normalizeFotos(t.fotos);
+
+            await db.updateDocument(DB_ID, COL_TERRENOS, id, { dados: JSON.stringify(t) });
+
+            closeModal('modal-reserva');
+            loadData();
+        });
+
+        window.liberarReserva = async (id) => {
+            try {
+                const t = terrenos.find(x => x.$id === id);
+                if (!t) { alert('Terreno no encontrado.'); return; }
+                const name = `${t.codigo} - ${t.nome}`;
+                if (!confirm(`¿Liberar la reserva de:\n\n${name}\n\nEsto lo deja como DISPONIBLE.`)) return;
+
+                document.getElementById('loader').classList.remove('hidden');
+
+                t.reserva = null;
+                t.estado = 'Disponible';
+                t.fotos = normalizeFotos(t.fotos);
+
+                await db.updateDocument(DB_ID, COL_TERRENOS, id, { dados: JSON.stringify(t) });
+
+                loadData();
+            } catch (err) {
+                console.error('liberarReserva error', err);
+                alert('Error liberando reserva: ' + (err && err.message ? err.message : err));
+            }
+        };
 
         function renderTerrenos() {
             const b = document.getElementById('lista-terrenos');
@@ -2274,9 +2406,30 @@
                 const badge = (fileCount > 1) ? `<span class="file-count">+${fileCount}</span>` : '';
                 const imgHtml = `<div class="thumb-container" onclick="verDetalles('${t.$id}', 'land')">${thumbInner}${badge}</div>`;
 
-                let btn = t.estado === 'Disponible'
-                    ? `<button type="button" class="btn btn-p" style="padding:7px 10px; border-radius:12px;" onclick="event.stopPropagation(); openVenda('${t.$id}')">Vender</button>`
-                    : `<span class="status-badge status-vendido"><i class="fas fa-lock"></i> Vendido</span>`;
+                let estadoHtml = '';
+                if (t.estado === 'Disponible') {
+                    estadoHtml = `<span class="status-badge status-disponible"><i class="fas fa-check"></i> Disponible</span>`;
+                } else if (t.estado === 'Reservado') {
+                    estadoHtml = `<span class="status-badge status-reservado"><i class="fas fa-bookmark"></i> Reservado</span>`;
+                } else {
+                    estadoHtml = `<span class="status-badge status-vendido"><i class="fas fa-lock"></i> Vendido</span>`;
+                }
+
+                let acciones = '';
+                if (t.estado === 'Disponible') {
+                    acciones = `
+                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openReserva('${t.$id}')"><i class="fas fa-bookmark"></i></button>
+                        <button type="button" class="btn btn-p btn-sm" onclick="event.stopPropagation(); openVenda('${t.$id}')"><i class="fas fa-handshake"></i></button>
+                    `;
+                } else if (t.estado === 'Reservado') {
+                    acciones = `
+                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openReserva('${t.$id}')" title="Editar reserva"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); liberarReserva('${t.$id}')" title="Liberar reserva"><i class="fas fa-unlock"></i></button>
+                        <button type="button" class="btn btn-p btn-sm" onclick="event.stopPropagation(); openVenda('${t.$id}')" title="Vender (desde reserva)"><i class="fas fa-handshake"></i></button>
+                    `;
+                } else {
+                    acciones = ``;
+                }
 
                 b.innerHTML += `<tr>
                     <td>${imgHtml}</td>
@@ -2284,17 +2437,16 @@
                     <td>${t.nome}</td>
                     <td>${new Intl.NumberFormat('es-BO').format(t.area)} m²</td>
                     <td>${t.moneda} ${new Intl.NumberFormat('es-BO').format(t.precio)}</td>
-                    <td>${t.estado}</td>
+                    <td>${estadoHtml}</td>
                     <td style="display:flex; gap:8px; flex-wrap:wrap;">
                         <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); openEdit('${t.$id}', 'land')"><i class="fas fa-edit"></i></button>
-                        ${btn}
+                        ${acciones}
                         <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${t.$id}', 'land')"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
             });
         }
 
-        
         // ------------------------------
         // VENTAS
         // ------------------------------
@@ -2372,6 +2524,7 @@
             try {
                 const t = terrenos.find(x => x.$id === id);
                 if (!t) { alert('Terreno no encontrado.'); return; }
+                if (t.estado === 'Vendido') { alert('Este terreno ya está VENDIDO.'); return; }
 
                 const landMoneda = safeCurrency(t.moneda || 'BOB');
 
@@ -2379,6 +2532,27 @@
                 window._vendaBaseTotal = Number(t.precio) || 0;
                 window._vendaBaseEntrada = 0;
                 window._vendaLastPayCurrency = landMoneda;
+
+                // Reset campos básicos
+                document.getElementById('v-cliente').value = '';
+                document.getElementById('v-ci').value = '';
+                document.getElementById('v-ncuotas').value = 12;
+
+                // Si está reservado: prellenar cliente/ci y mostrar aviso
+                const warn = document.getElementById('v-reserva-warning');
+                const warnTxt = document.getElementById('v-reserva-warning-txt');
+                if (t.estado === 'Reservado' && t.reserva && t.reserva.cliente) {
+                    document.getElementById('v-cliente').value = t.reserva.cliente || '';
+                    document.getElementById('v-ci').value = t.reserva.ci || '';
+                    if (warn) warn.classList.remove('hidden');
+                    if (warnTxt) {
+                        const f = t.reserva.fecha ? ` (${t.reserva.fecha})` : '';
+                        warnTxt.innerText = ` Reservado para: ${t.reserva.cliente}${f}.`;
+                    }
+                } else {
+                    if (warn) warn.classList.add('hidden');
+                    if (warnTxt) warnTxt.innerText = '';
+                }
 
                 document.getElementById('v-land-id').value = id;
                 document.getElementById('v-land-info').innerText = `${t.codigo} - ${t.nome}`;
@@ -2388,7 +2562,6 @@
                     const valReg = (typeof t.precio === 'number' && !isNaN(t.precio)) ? t.precio : (parseFloat(t.precio) || 0);
                     regEl.value = `${symReg} ${new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(valReg)} (${t.moneda})`;
                 }
-
 
                 const sel = document.getElementById('v-pay-currency');
                 if (sel) {
@@ -2423,13 +2596,12 @@
         }
         window.openVenda = openVenda;
 
-document.getElementById('form-venda').addEventListener('submit', async (e) => {
+        document.getElementById('form-venda').addEventListener('submit', async (e) => {
             e.preventDefault();
             document.getElementById('loader').classList.remove('hidden');
 
             const tId = document.getElementById('v-land-id').value;
             const terreno = terrenos.find(x => x.$id === tId);
-
 
             // Moneda de pago para esta venta (si el terreno está en USD, puedes vender en USD o en Bs)
             let payMoneda = terreno ? (terreno.moneda || 'BOB') : 'BOB';
@@ -2481,6 +2653,7 @@ document.getElementById('form-venda').addEventListener('submit', async (e) => {
             await db.createDocument(DB_ID, COL_VENDAS, ID.unique(), { dados: JSON.stringify(venda) }, getPermissions());
 
             terreno.estado = 'Vendido';
+            terreno.reserva = null; // al vender, se elimina reserva
             terreno.fotos = normalizeFotos(terreno.fotos);
             await db.updateDocument(DB_ID, COL_TERRENOS, tId, { dados: JSON.stringify(terreno) });
 
@@ -2796,7 +2969,6 @@ document.getElementById('form-venda').addEventListener('submit', async (e) => {
             document.getElementById('e-type').value = type;
             document.getElementById('e-nome').value = (type === 'land') ? d.nome : d.cliente;
             document.getElementById('e-valor').value = (type === 'land') ? d.precio : d.total;
-            
 
             const monedaBadge = document.getElementById('e-moneda-badge');
             if (monedaBadge) {
@@ -2805,7 +2977,7 @@ document.getElementById('form-venda').addEventListener('submit', async (e) => {
                     : (d.moneda || d.moneda_pago || d.moneda_base || 'BOB');
                 monedaBadge.innerText = safeCurrency(mRaw);
             }
-document.getElementById('e-notas').value = (d.notas || '');
+            document.getElementById('e-notas').value = (d.notas || '');
 
             const g = document.getElementById('e-gallery');
             g.innerHTML = '';
@@ -2891,6 +3063,7 @@ document.getElementById('e-notas').value = (d.notas || '');
                 const t = terrenos.find(x => x.$id === v.landId);
                 if (t) {
                     t.estado = 'Disponible';
+                    t.reserva = null;
                     t.fotos = normalizeFotos(t.fotos);
                     await db.updateDocument(DB_ID, COL_TERRENOS, t.$id, { dados: JSON.stringify(t) });
                 }
@@ -2925,11 +3098,26 @@ document.getElementById('e-notas').value = (d.notas || '');
             const c = document.getElementById('detalles-contenido');
 
             if (type === 'land') {
+                let reservaHtml = '';
+                if (d.estado === 'Reservado' && d.reserva && d.reserva.cliente) {
+                    const r = d.reserva;
+                    reservaHtml = `
+                        <div style="margin-top:10px; background:rgba(243,156,18,0.14); border:1px solid rgba(243,156,18,0.22); padding:12px; border-radius:14px;">
+                            <div style="font-weight:950; color:#92400e;"><i class="fas fa-bookmark"></i> Reserva</div>
+                            <div style="margin-top:6px; color:#0f172a; font-weight:900;">Cliente: <span style="font-weight:950;">${r.cliente || ''}</span></div>
+                            <div style="color:#334155; font-weight:900;">CI/Doc: ${r.ci || ''}</div>
+                            <div style="color:#334155; font-weight:900;">Fecha: ${r.fecha || ''}</div>
+                            ${r.notas ? `<div style="color:#334155; margin-top:6px;">${r.notas}</div>` : ``}
+                        </div>
+                    `;
+                }
+
                 c.innerHTML = `<h2 style="font-weight:950; color:#0f172a; margin-bottom:8px;">${d.nome}</h2>
                    <p style="font-weight:900; color:#334155;"><strong>Precio:</strong> ${d.moneda} ${new Intl.NumberFormat('es-BO').format(d.precio)}</p>
                    <p style="font-weight:900; color:#334155;"><strong>Superficie:</strong> ${new Intl.NumberFormat('es-BO').format(d.area)} m²</p>
                    <p style="font-weight:900; color:#334155;"><strong>Estado:</strong> ${d.estado}</p>
-                   <p style="color:#334155; margin-top:6px;">${d.notas || ''}</p>
+                   ${reservaHtml}
+                   <p style="color:#334155; margin-top:10px;">${d.notas || ''}</p>
                    <hr style="margin:12px 0; border:0; border-top:1px solid rgba(15,23,42,0.08);">${mediaHtml}`;
             } else {
                 const notasHtml = (d.notas && String(d.notas).trim())
@@ -3027,16 +3215,18 @@ document.getElementById('e-notas').value = (d.notas || '');
 
             const ctx1 = document.getElementById('chart-fin').getContext('2d');
             if (window.ch1) window.ch1.destroy();
+
+            const disp = terrenos.filter(t => t.estado === 'Disponible').length;
+            const resv = terrenos.filter(t => t.estado === 'Reservado').length;
+            const vend = terrenos.filter(t => t.estado === 'Vendido').length;
+
             window.ch1 = new Chart(ctx1, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Disp', 'Vend'],
+                    labels: ['Disponible', 'Reservado', 'Vendido'],
                     datasets: [{
-                        data: [
-                            terrenos.filter(t => t.estado === 'Disponible').length,
-                            terrenos.filter(t => t.estado === 'Vendido').length
-                        ],
-                        backgroundColor: ['#27ae60', '#7f8c8d']
+                        data: [disp, resv, vend],
+                        backgroundColor: ['#27ae60', '#f39c12', '#7f8c8d']
                     }]
                 },
                 options: { maintainAspectRatio: false }
