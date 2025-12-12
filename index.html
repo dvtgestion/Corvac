@@ -18,8 +18,18 @@
             --success: #27ae60;    /* Verde (Dinero/Éxito) */
             --warning: #f39c12;    /* Naranja (Alertas) */
             --danger: #c0392b;     /* Rojo (Eliminar/PDF) */
-            --light: #f4f6f9;      /* Color de Fondo */
-            --white: #ffffff;      /* Blanco Puro */
+            --light: #f4f6f9;      /* Fondo */
+            --white: #ffffff;
+
+            /* Extra estética */
+            --bg1: #0f172a; /* slate-900 */
+            --bg2: #111827; /* gray-900 */
+            --glass: rgba(255,255,255,0.08);
+            --glass2: rgba(255,255,255,0.14);
+            --shadow: 0 18px 55px rgba(0,0,0,0.35);
+            --shadowSoft: 0 8px 25px rgba(0,0,0,0.12);
+            --ring: rgba(41,128,185,0.25);
+            --muted: rgba(255,255,255,0.65);
         }
 
         /* --- Configuración General --- */
@@ -27,7 +37,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
         }
 
         body {
@@ -51,89 +61,171 @@
 
         /* --- Botones --- */
         .btn {
-            padding: 10px 20px;
+            padding: 10px 16px;
             border: none;
-            border-radius: 6px;
+            border-radius: 10px;
             cursor: pointer;
-            font-weight: 600;
+            font-weight: 700;
             color: #fff;
-            transition: 0.2s;
-            font-size: 0.9rem;
+            transition: 0.18s ease;
+            font-size: 0.92rem;
+            letter-spacing: 0.2px;
+            box-shadow: 0 10px 22px rgba(0,0,0,0.12);
         }
 
-        .btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
+        .btn:hover { transform: translateY(-1px); opacity: 0.95; }
+        .btn:active { transform: translateY(0px); opacity: 0.92; }
+
+        .btn-p { background: linear-gradient(135deg, #2f80ed, var(--accent)); }
+        .btn-s { background: linear-gradient(135deg, #2ecc71, var(--success)); }
+        .btn-d { background: linear-gradient(135deg, #e74c3c, var(--danger)); }
+        .btn-w { background: linear-gradient(135deg, #f1c40f, var(--warning)); color: #2c3e50; }
+        .btn-g { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
+        .btn-sm { padding: 7px 12px; font-size: 0.82rem; border-radius: 9px; }
+
+        /* --- Loader --- */
+        #loader {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(255,255,255,0.88);
+            z-index: 3000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: var(--accent);
+            backdrop-filter: blur(6px);
         }
 
-        .btn-p { background: var(--accent); }
-        .btn-s { background: var(--success); }
-        .btn-d { background: var(--danger); }
-        .btn-w { background: var(--warning); }
-        .btn-g { background: #7f8c8d; }
-        .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
-
-        /* --- Pantalla de Login --- */
+        /* --- Pantalla de Login (más estética) --- */
         #login-screen {
             position: fixed;
-            top: 0;
-            left: 0;
+            top: 0; left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background:
+              radial-gradient(1000px 600px at 15% 10%, rgba(41,128,185,0.45), transparent 60%),
+              radial-gradient(900px 550px at 90% 35%, rgba(39,174,96,0.25), transparent 55%),
+              radial-gradient(800px 500px at 55% 95%, rgba(243,156,18,0.18), transparent 60%),
+              linear-gradient(135deg, var(--bg1), var(--bg2));
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 2000;
+            padding: 18px;
         }
 
         .login-box {
-            background: white;
-            padding: 2.5rem;
-            border-radius: 10px;
-            width: 400px;
-            text-align: center;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+            width: 440px;
+            max-width: 95vw;
+            border-radius: 18px;
+            padding: 28px 28px 24px 28px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-box:before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            background: radial-gradient(600px 240px at 20% 0%, rgba(255,255,255,0.20), transparent 60%);
+            pointer-events: none;
+        }
+
+        .login-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .login-logo {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.18);
+        }
+
+        .login-logo i { color: rgba(255,255,255,0.92); font-size: 20px; }
+
+        .login-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: 0.3px;
+            line-height: 1.1;
+        }
+
+        .login-subtitle {
+            color: var(--muted);
+            margin-bottom: 18px;
+            font-weight: 600;
+            font-size: 0.95rem;
         }
 
         /* --- Formularios e Inputs --- */
-        .input-group {
-            margin-bottom: 15px;
-            text-align: left;
-        }
+        .input-group { margin-bottom: 14px; text-align: left; }
 
         .input-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #555;
+            margin-bottom: 6px;
+            font-weight: 800;
+            color: #475569;
+            font-size: 0.92rem;
         }
 
+        /* inputs en app */
         .input-group input,
         .input-group select,
         .input-group textarea {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 11px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
             font-size: 1rem;
-        }
-
-        .input-group input:focus {
-            border-color: var(--accent);
             outline: none;
+            transition: 0.18s ease;
+            background: #fff;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.04);
         }
 
-        /* Texto Verde de Previsualización (Bs 1.000,00) */
+        .input-group input:focus,
+        .input-group select:focus,
+        .input-group textarea:focus {
+            border-color: rgba(41,128,185,0.55);
+            box-shadow: 0 0 0 4px var(--ring);
+        }
+
+        /* inputs en login */
+        #login-screen .input-group label { color: rgba(255,255,255,0.82); }
+        #login-screen .input-group input {
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.95);
+            box-shadow: none;
+        }
+        #login-screen .input-group input::placeholder { color: rgba(255,255,255,0.55); }
+        #login-screen .input-group input:focus { box-shadow: 0 0 0 4px rgba(41,128,185,0.25); }
+
+        /* Texto Verde de Previsualización */
         .number-preview {
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             color: var(--success);
-            font-weight: bold;
-            margin-top: 4px;
+            font-weight: 800;
+            margin-top: 6px;
             display: inline-block;
             background: #e8f8f5;
-            padding: 2px 8px;
-            border-radius: 4px;
+            padding: 3px 10px;
+            border-radius: 999px;
             border: 1px solid #c3e6cb;
         }
 
@@ -142,52 +234,80 @@
             display: flex;
             flex: 1;
             overflow: hidden;
+            background: radial-gradient(1200px 600px at 20% 5%, rgba(41,128,185,0.12), transparent 65%),
+                        radial-gradient(900px 500px at 85% 18%, rgba(39,174,96,0.10), transparent 55%),
+                        linear-gradient(180deg, #f7fafc, #eef2f7);
         }
 
-        /* Menú Lateral */
+        /* Menú Lateral (más moderno) */
         aside {
-            width: 260px;
-            background: var(--primary);
+            width: 270px;
+            background: linear-gradient(180deg, #0f172a, #111827);
             color: white;
             display: flex;
             flex-direction: column;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            box-shadow: 10px 0 35px rgba(0,0,0,0.16);
+            border-right: 1px solid rgba(255,255,255,0.06);
         }
 
         aside h3 {
-            padding: 20px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 18px 18px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.05rem;
+            font-weight: 900;
+            letter-spacing: 0.2px;
         }
+
+        .menu { padding: 10px; }
 
         .menu button {
             width: 100%;
-            padding: 15px 20px;
-            background: none;
-            border: none;
-            color: #ccc;
+            padding: 12px 14px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: rgba(255,255,255,0.78);
             text-align: left;
             cursor: pointer;
-            font-size: 1rem;
-            transition: 0.3s;
+            font-size: 0.98rem;
+            transition: 0.18s ease;
+            border-radius: 12px;
+            margin-bottom: 6px;
         }
 
         .menu button:hover {
-            background: var(--secondary);
-            color: white;
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.95);
+            border-color: rgba(255,255,255,0.10);
         }
 
         .menu button.active {
-            background: var(--secondary);
-            color: white;
-            border-left: 5px solid var(--accent);
-            font-weight: bold;
+            background: linear-gradient(135deg, rgba(41,128,185,0.24), rgba(41,128,185,0.10));
+            color: rgba(255,255,255,0.98);
+            border-color: rgba(41,128,185,0.35);
+            font-weight: 900;
+            position: relative;
+        }
+
+        .menu button.active:before {
+            content: "";
+            position: absolute;
+            left: 8px;
+            top: 10px;
+            bottom: 10px;
+            width: 4px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, #2f80ed, #2980b9);
         }
 
         .menu i {
             margin-right: 10px;
-            width: 25px;
+            width: 22px;
             text-align: center;
+            opacity: 0.95;
         }
 
         /* Contenido Principal */
@@ -196,73 +316,88 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            background: var(--light);
+            background: transparent;
         }
 
         header {
-            background: white;
-            padding: 15px 25px;
+            background: rgba(255,255,255,0.72);
+            padding: 14px 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-shadow: var(--shadowSoft);
+            border-bottom: 1px solid rgba(15,23,42,0.06);
+            backdrop-filter: blur(10px);
+        }
+
+        #page-title {
+            font-weight: 950;
+            letter-spacing: 0.2px;
         }
 
         #content {
             flex: 1;
-            padding: 25px;
+            padding: 18px;
             overflow-y: auto;
         }
 
         /* Tarjetas y Tablas */
         .card {
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
+            background: rgba(255,255,255,0.85);
+            padding: 18px;
+            border-radius: 16px;
+            box-shadow: var(--shadowSoft);
+            margin-bottom: 16px;
+            border: 1px solid rgba(15,23,42,0.06);
+            backdrop-filter: blur(10px);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
+            overflow: hidden;
+            border-radius: 14px;
         }
 
         th, td {
-            padding: 12px 15px;
+            padding: 12px 14px;
             text-align: left;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #eef2f7;
+            vertical-align: middle;
         }
 
         th {
-            background: #f8f9fa;
-            color: var(--primary);
-            font-weight: bold;
+            background: rgba(248,250,252,0.9);
+            color: #0f172a;
+            font-weight: 900;
+            font-size: 0.92rem;
         }
 
-        tr:hover {
-            background: #f9f9f9;
-        }
+        tr:hover { background: rgba(248,250,252,0.9); }
 
         /* Etiquetas de Estado */
         .status-badge {
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            font-weight: bold;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 900;
+            letter-spacing: 0.2px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .status-disponible {
             background: #e8f8f5;
-            color: #27ae60;
-            border: 1px solid #27ae60;
+            color: #1f8a51;
+            border: 1px solid rgba(39,174,96,0.45);
         }
 
         .status-vendido {
-            background: #eaeded;
-            color: #7f8c8d;
-            border: 1px solid #7f8c8d;
+            background: #eef2f7;
+            color: #64748b;
+            border: 1px solid rgba(100,116,139,0.35);
         }
 
         /* --- Galería y PDF --- */
@@ -273,19 +408,20 @@
             margin-top: 10px;
         }
 
-        /* Caja de Previsualización (Edición) */
+        /* Caja de Previsualización (Edición y Registro pool) */
         .img-preview-box {
             position: relative;
-            width: 100px;
-            height: 100px;
-            border: 1px solid #ddd;
-            background: #fff;
-            border-radius: 4px;
+            width: 110px;
+            height: 110px;
+            border: 1px solid rgba(15,23,42,0.10);
+            background: rgba(255,255,255,0.92);
+            border-radius: 14px;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-direction: column;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.08);
         }
 
         .img-preview-box img {
@@ -296,40 +432,45 @@
         }
 
         .pdf-icon {
-            font-size: 40px;
+            font-size: 42px;
             color: var(--danger);
-            margin-bottom: 5px;
+            margin-bottom: 6px;
         }
 
         .file-name {
             font-size: 10px;
-            color: #666;
+            color: #475569;
             text-align: center;
             width: 100%;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
-            padding: 2px;
+            padding: 0 6px 6px 6px;
+            font-weight: 800;
         }
 
         .btn-del-img {
             position: absolute;
-            top: 0;
-            right: 0;
-            background: rgba(200,0,0,0.8);
+            top: 6px;
+            right: 6px;
+            background: rgba(200,0,0,0.90);
             color: white;
-            width: 25px;
-            height: 25px;
-            text-align: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            font-weight: bold;
-            z-index: 20;
+            font-weight: 900;
+            z-index: 10;
+            border: 1px solid rgba(255,255,255,0.25);
         }
 
         /* Miniaturas en la Tabla del Inventario */
         .thumb-container {
-            width: 60px;
-            height: 60px;
+            width: 62px;
+            height: 62px;
             position: relative;
             cursor: pointer;
         }
@@ -338,9 +479,10 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            border-radius: 4px;
-            border: 1px solid #ddd;
+            border-radius: 12px;
+            border: 1px solid rgba(15,23,42,0.10);
             background: #fff;
+            box-shadow: 0 10px 22px rgba(0,0,0,0.08);
         }
 
         .thumb-pdf {
@@ -353,121 +495,125 @@
             color: var(--danger);
             background: #fff0f0;
             border: 1px solid #ffcccc;
-            border-radius: 4px;
+            border-radius: 12px;
+            box-shadow: 0 10px 22px rgba(0,0,0,0.08);
         }
 
         /* Contador de archivos (+2) */
         .file-count {
             position: absolute;
-            bottom: -5px;
-            right: -5px;
-            background: var(--primary);
+            bottom: -6px;
+            right: -6px;
+            background: #0f172a;
             color: white;
             font-size: 10px;
-            padding: 2px 5px;
-            border-radius: 10px;
-            font-weight: bold;
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-weight: 900;
+            border: 2px solid rgba(255,255,255,0.9);
         }
 
         /* Detalles (Links PDF y Fotos Grandes) */
         .img-full {
             width: 100%;
-            max-height: 450px;
+            max-height: 460px;
             object-fit: contain;
-            background: #fafafa;
-            border: 1px solid #eee;
-            margin-bottom: 15px;
+            background: rgba(248,250,252,0.9);
+            border: 1px solid rgba(15,23,42,0.06);
+            margin-bottom: 12px;
+            border-radius: 14px;
+            box-shadow: 0 10px 26px rgba(0,0,0,0.06);
         }
 
         .doc-link {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 15px;
-            background: #fff;
-            border: 1px solid #ddd;
-            border-left: 5px solid var(--danger);
+            padding: 14px;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid rgba(15,23,42,0.08);
+            border-left: 6px solid var(--danger);
             margin-bottom: 10px;
-            border-radius: 4px;
-            color: #333;
+            border-radius: 14px;
+            color: #0f172a;
             text-decoration: none;
-            font-weight: 600;
-            transition: 0.2s;
+            font-weight: 900;
+            transition: 0.18s ease;
+            box-shadow: 0 10px 26px rgba(0,0,0,0.06);
         }
 
         .doc-link:hover {
             background: #fff5f5;
-            transform: translateX(5px);
+            transform: translateX(3px);
         }
 
-        /* --- Loader y Ventanas Modales --- */
-        #loader {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(255,255,255,0.9);
-            z-index: 3000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            color: var(--accent);
-        }
-
+        /* --- Ventanas Modales --- */
         .modal {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
+            background: rgba(2,6,23,0.65);
             z-index: 2500;
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 14px;
+            backdrop-filter: blur(8px);
         }
 
         .modal-content {
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 600px;
+            background: rgba(255,255,255,0.92);
+            padding: 18px;
+            border-radius: 18px;
+            width: 96%;
+            max-width: 640px;
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(15,23,42,0.10);
+            backdrop-filter: blur(10px);
         }
 
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #eee;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(15,23,42,0.08);
             padding-bottom: 10px;
         }
 
         .close-modal {
-            background: none;
-            border: none;
-            font-size: 1.8rem;
+            background: rgba(15,23,42,0.06);
+            border: 1px solid rgba(15,23,42,0.08);
+            font-size: 1.4rem;
             cursor: pointer;
-            color: #777;
+            color: #0f172a;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+        .close-modal:hover { background: rgba(15,23,42,0.10); }
 
         .chart-container {
             position: relative;
-            height: 250px;
+            height: 260px;
             width: 100%;
             display: flex;
             justify-content: center;
         }
 
         .live-calc-box {
-            background: #e0f2f1;
-            padding: 10px;
-            border-radius: 5px;
+            background: rgba(224,242,241,0.95);
+            padding: 10px 12px;
+            border-radius: 14px;
             margin-top: 10px;
             text-align: center;
-            border: 1px solid #80cbc4;
+            border: 1px solid rgba(128,203,196,0.85);
+            box-shadow: 0 10px 22px rgba(0,0,0,0.06);
         }
 
         /* Filtros de Fecha en Dashboard */
@@ -475,17 +621,47 @@
             display: flex;
             gap: 10px;
             align-items: center;
-            background: #fff;
-            padding: 10px;
-            border-radius: 6px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
+            background: rgba(255,255,255,0.78);
+            padding: 10px 12px;
+            border-radius: 14px;
+            box-shadow: var(--shadowSoft);
+            margin-bottom: 16px;
+            border: 1px solid rgba(15,23,42,0.06);
+            backdrop-filter: blur(10px);
+            flex-wrap: wrap;
         }
 
         .date-filters input {
-            border: 1px solid #ccc;
-            padding: 5px;
-            border-radius: 4px;
+            border: 1px solid rgba(15,23,42,0.14);
+            padding: 8px 10px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.92);
+        }
+
+        /* Caja informativa para registro de archivos */
+        .hint-box {
+            background: rgba(41,128,185,0.08);
+            border: 1px solid rgba(41,128,185,0.18);
+            padding: 10px 12px;
+            border-radius: 14px;
+            color: #0f172a;
+            font-weight: 800;
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+        .hint-box small { display:block; margin-top:4px; font-weight:700; color:#334155; opacity:0.85; }
+
+        @media (max-width: 860px) {
+            aside { width: 240px; }
+            #content { padding: 14px; }
+            .card { padding: 14px; }
+        }
+
+        @media (max-width: 700px) {
+            #app-container { flex-direction: column; }
+            aside { width: 100%; }
+            .menu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+            .menu button { margin-bottom: 0; }
         }
     </style>
 </head>
@@ -493,13 +669,19 @@
 
     <div id="loader" class="hidden">
         <i class="fas fa-spinner fa-spin fa-3x"></i>
-        <p style="margin-top:15px; font-weight:bold;">Cargando...</p>
+        <p style="margin-top:15px; font-weight:900;">Cargando...</p>
     </div>
 
     <div id="login-screen">
         <div class="login-box">
-            <h2 style="color:var(--primary); margin-bottom:10px;">Corvacruz Inmobiliaria</h2>
-            <p style="color:#666; margin-bottom:25px;">Sistema Seguro & Privado</p>
+            <div class="login-brand">
+                <div class="login-logo"><i class="fas fa-city"></i></div>
+                <div>
+                    <div class="login-title">Corvacruz Inmobiliaria</div>
+                    <div class="login-subtitle">Sistema seguro & privado</div>
+                </div>
+            </div>
+
             <form id="form-login">
                 <div class="input-group">
                     <label>Correo Electrónico</label>
@@ -509,9 +691,13 @@
                     <label>Contraseña</label>
                     <input type="password" id="password" required placeholder="******">
                 </div>
-                <button type="submit" class="btn btn-p w-100">Ingresar</button>
-                <p id="login-msg" style="color:var(--danger); margin-top:15px; font-weight:bold;"></p>
+                <button type="submit" class="btn btn-p w-100"><i class="fas fa-right-to-bracket"></i> Ingresar</button>
+                <p id="login-msg" style="color:#ffd5d5; margin-top:14px; font-weight:900;"></p>
             </form>
+
+            <div style="margin-top:14px; color:rgba(255,255,255,0.68); font-weight:700; font-size:0.85rem;">
+                <i class="fas fa-shield-halved"></i> Acceso restringido a usuarios autorizados
+            </div>
         </div>
     </div>
 
@@ -529,9 +715,9 @@
 
         <main>
             <header>
-                <h3 id="page-title" style="color:var(--primary)">Resumen General</h3>
-                <div class="flex" style="align-items:center; gap:15px;">
-                    <span id="user-email-display" style="font-weight:600; color:#555;"></span>
+                <h3 id="page-title" style="color:#0f172a">Resumen General</h3>
+                <div class="flex" style="align-items:center; gap:12px; flex-wrap:wrap;">
+                    <span id="user-email-display" style="font-weight:900; color:#334155;"></span>
                     <button onclick="logout()" class="btn btn-g btn-sm"><i class="fas fa-sign-out-alt"></i> Salir</button>
                 </div>
             </header>
@@ -540,31 +726,32 @@
 
                 <div id="view-resumen">
                     <div class="date-filters">
-                        <label><i class="fas fa-calendar-alt"></i> Desde:</label>
+                        <label style="font-weight:900; color:#0f172a;"><i class="fas fa-calendar-alt"></i> Desde:</label>
                         <input type="date" id="filter-date-start" onchange="updateDashboard()">
-                        <label>Hasta:</label>
+                        <label style="font-weight:900; color:#0f172a;">Hasta:</label>
                         <input type="date" id="filter-date-end" onchange="updateDashboard()">
-                        <span style="font-size:0.8rem; color:#666; margin-left:10px;">(Filtra lo recaudado)</span>
+                        <span style="font-size:0.82rem; color:#334155; margin-left:8px; font-weight:800;">(Filtra lo recaudado)</span>
                     </div>
 
-                    <div class="flex gap-2" style="margin-bottom:25px; flex-wrap:wrap;">
+                    <div class="flex gap-2" style="margin-bottom:16px; flex-wrap:wrap;">
                         <div class="card" style="flex:1; text-align:center;">
-                            <h4 style="color:#777">Total Terrenos</h4>
-                            <h1 id="kpi-total" style="font-size:2.5rem; margin-top:10px;">0</h1>
+                            <h4 style="color:#64748b; font-weight:900;">Total Terrenos</h4>
+                            <h1 id="kpi-total" style="font-size:2.4rem; margin-top:8px; color:#0f172a;">0</h1>
                         </div>
                         <div class="card" style="flex:1; text-align:center;">
-                            <h4 style="color:#777">Disponibles</h4>
-                            <h1 id="kpi-disp" style="font-size:2.5rem; margin-top:10px; color:var(--success)">0</h1>
+                            <h4 style="color:#64748b; font-weight:900;">Disponibles</h4>
+                            <h1 id="kpi-disp" style="font-size:2.4rem; margin-top:8px; color:var(--success)">0</h1>
                         </div>
                         <div class="card" style="flex:1; text-align:center;">
-                            <h4 style="color:#777">Vendidos</h4>
-                            <h1 id="kpi-vendidos" style="font-size:2.5rem; margin-top:10px; color:#7f8c8d">0</h1>
+                            <h4 style="color:#64748b; font-weight:900;">Vendidos</h4>
+                            <h1 id="kpi-vendidos" style="font-size:2.4rem; margin-top:8px; color:#64748b">0</h1>
                         </div>
-                        <div class="card" style="flex:1; text-align:center; border-bottom: 4px solid var(--accent);">
-                            <h4 style="color:var(--accent)">Recaudado (Ref. Bs)</h4>
-                            <h1 id="kpi-money" style="font-size:2.5rem; margin-top:10px; color:var(--primary)">0</h1>
+                        <div class="card" style="flex:1; text-align:center; border: 1px solid rgba(41,128,185,0.18);">
+                            <h4 style="color:var(--accent); font-weight:950;">Recaudado (Ref. Bs)</h4>
+                            <h1 id="kpi-money" style="font-size:2.4rem; margin-top:8px; color:#0f172a;">0</h1>
                         </div>
                     </div>
+
                     <div class="card">
                         <div class="chart-container">
                             <canvas id="chart-fin"></canvas>
@@ -574,9 +761,15 @@
 
                 <div id="view-registro" class="hidden">
                     <div class="card">
-                        <h3>Registrar Nuevo Terreno</h3>
-                        <form id="form-terreno" style="margin-top:20px;">
-                            <div class="flex gap-2">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                            <h3 style="font-weight:950; color:#0f172a;">Registrar Nuevo Terreno</h3>
+                            <span style="font-weight:900; color:#64748b; font-size:0.9rem;">
+                                <i class="fas fa-paperclip"></i> Puedes añadir archivos uno por uno (se acumulan)
+                            </span>
+                        </div>
+
+                        <form id="form-terreno" style="margin-top:16px;">
+                            <div class="flex gap-2" style="flex-wrap:wrap;">
                                 <div class="input-group w-100">
                                     <label>Código Interno</label>
                                     <input type="text" id="t-codigo" required>
@@ -586,7 +779,8 @@
                                     <input type="text" id="t-nome" required>
                                 </div>
                             </div>
-                            <div class="flex gap-2">
+
+                            <div class="flex gap-2" style="flex-wrap:wrap;">
                                 <div class="input-group w-100">
                                     <label>Superficie (m²)</label>
                                     <input type="number" id="t-area" oninput="window.showPreview(this, 'preview-t-area', 'm²')">
@@ -605,24 +799,45 @@
                                     <span id="preview-precio-t" class="number-preview">0,00</span>
                                 </div>
                             </div>
+
                             <div class="input-group">
                                 <label><i class="fas fa-camera"></i> Fotos y Documentos (PDF)</label>
+                                <!-- IMPORTANTE: este input ahora "acumula" via JS en un pool -->
                                 <input type="file" id="t-files" multiple accept="image/*,.pdf">
+                                <div class="hint-box">
+                                    Selecciona una foto, confirma. Luego selecciona el PDF, confirma.
+                                    <small>Los archivos se acumulan abajo antes de guardar.</small>
+                                </div>
+
+                                <div class="flex gap-2" style="margin-top:10px; flex-wrap:wrap;">
+                                    <button type="button" class="btn btn-g btn-sm" onclick="clearTerrenoFilePool()">
+                                        <i class="fas fa-broom"></i> Limpiar archivos
+                                    </button>
+                                    <span id="t-files-count" style="font-weight:900; color:#334155; align-self:center;"></span>
+                                </div>
+
+                                <div id="t-files-pool" class="gallery"></div>
                             </div>
+
                             <div class="input-group">
                                 <label>Notas Adicionales</label>
                                 <textarea id="t-notas" rows="3"></textarea>
                             </div>
-                            <button type="submit" class="btn btn-s w-100" style="font-size:1.1rem;">Guardar Terreno</button>
+
+                            <button type="submit" class="btn btn-s w-100" style="font-size:1.05rem;">
+                                <i class="fas fa-floppy-disk"></i> Guardar Terreno
+                            </button>
                         </form>
                     </div>
                 </div>
 
                 <div id="view-listado" class="hidden">
                     <div class="card">
-                        <div class="flex justify-between items-center" style="margin-bottom:15px;">
-                            <h3>Inventario</h3>
-                            <input type="text" id="search-land" placeholder="Buscar por nombre o código..." style="padding:10px; width:300px; border:1px solid #ddd; border-radius:5px;" onkeyup="renderTerrenos()">
+                        <div class="flex justify-between items-center" style="margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                            <h3 style="font-weight:950; color:#0f172a;">Inventario</h3>
+                            <input type="text" id="search-land" placeholder="Buscar por nombre o código..."
+                                   style="padding:11px 12px; width:320px; max-width:100%; border:1px solid rgba(15,23,42,0.14); border-radius:14px;"
+                                   onkeyup="renderTerrenos()">
                         </div>
                         <table>
                             <thead>
@@ -643,7 +858,7 @@
 
                 <div id="view-ventas" class="hidden">
                     <div class="card">
-                        <div class="flex gap-2" style="margin-bottom:20px;">
+                        <div class="flex gap-2" style="margin-bottom:14px; flex-wrap:wrap;">
                             <button onclick="switchVendas('resumo')" class="btn btn-p">Cobranzas</button>
                             <button onclick="switchVendas('completos')" class="btn btn-s">Completados</button>
                             <button onclick="switchVendas('hist')" class="btn btn-g">Editar / Historial</button>
@@ -651,7 +866,9 @@
                         </div>
 
                         <div id="tab-vendas-resumo">
-                            <input type="text" id="search-venda" placeholder="Buscar cliente..." style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ddd;" onkeyup="renderVendas()">
+                            <input type="text" id="search-venda" placeholder="Buscar cliente..."
+                                   style="width:100%; padding:11px 12px; margin-bottom:12px; border:1px solid rgba(15,23,42,0.14); border-radius:14px;"
+                                   onkeyup="renderVendas()">
                             <table>
                                 <thead>
                                     <tr>
@@ -668,7 +885,7 @@
                         </div>
 
                         <div id="tab-vendas-completos" class="hidden">
-                            <h4 style="margin-bottom:10px; color:var(--success)">Pagos Finalizados</h4>
+                            <h4 style="margin-bottom:10px; color:var(--success); font-weight:950;">Pagos Finalizados</h4>
                             <table>
                                 <thead>
                                     <tr>
@@ -707,22 +924,28 @@
     <div id="modal-venda" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Realizar Venta</h3>
+                <h3 style="font-weight:950; color:#0f172a;">Realizar Venta</h3>
                 <button class="close-modal" onclick="closeModal('modal-venda')">&times;</button>
             </div>
             <form id="form-venda">
                 <input type="hidden" id="v-land-id">
-                <p style="background:#eef; padding:15px; border-radius:5px; margin-bottom:15px;">Terreno: <strong id="v-land-info"></strong></p>
-                <div class="flex gap-2">
+                <p style="background:rgba(41,128,185,0.08); border:1px solid rgba(41,128,185,0.14); padding:12px; border-radius:14px; margin-bottom:12px; font-weight:900;">
+                    Terreno: <strong id="v-land-info"></strong>
+                </p>
+
+                <div class="flex gap-2" style="flex-wrap:wrap;">
                     <div class="input-group w-100"><label>Cliente</label><input type="text" id="v-cliente" required></div>
                     <div class="input-group w-100"><label>CI/Doc</label><input type="text" id="v-ci"></div>
                 </div>
+
                 <div class="input-group">
                     <label>Documentos (Fotos/PDF)</label>
                     <input type="file" id="v-files" multiple accept="image/*,.pdf">
                 </div>
-                <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
-                <div class="flex gap-2">
+
+                <hr style="margin:14px 0; border:0; border-top:1px solid rgba(15,23,42,0.08);">
+
+                <div class="flex gap-2" style="flex-wrap:wrap;">
                     <div class="input-group w-100">
                         <label>Precio Final</label>
                         <input type="number" id="v-total" required step="0.01" oninput="window.calcLive(); window.showPreview(this, 'preview-v-total', document.getElementById('lbl-moneda-venda').innerText)">
@@ -734,14 +957,19 @@
                         <span id="preview-v-entrada" class="number-preview">0,00</span>
                     </div>
                 </div>
-                <div class="flex gap-2">
+
+                <div class="flex gap-2" style="flex-wrap:wrap;">
                     <div class="input-group w-100"><label>Nº Cuotas</label><input type="number" id="v-ncuotas" value="12" oninput="window.calcLive()"></div>
                     <div class="input-group w-100"><label>1er Vencimiento</label><input type="date" id="v-data1" required></div>
                 </div>
+
                 <div class="live-calc-box">
-                    <h4>Cuota Mensual: <span id="live-result-text">0,00</span> <span id="lbl-moneda-venda" style="font-size:0.8rem"></span></h4>
+                    <h4 style="font-weight:950; color:#0f172a;">
+                        Cuota Mensual: <span id="live-result-text">0,00</span> <span id="lbl-moneda-venda" style="font-size:0.85rem"></span>
+                    </h4>
                 </div>
-                <div class="text-right" style="margin-top:20px;">
+
+                <div class="text-right" style="margin-top:16px; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
                     <button type="button" onclick="closeModal('modal-venda')" class="btn btn-g">Cancelar</button>
                     <button type="submit" class="btn btn-p">Confirmar Venta</button>
                 </div>
@@ -750,27 +978,28 @@
     </div>
 
     <div id="modal-pagar" class="modal hidden">
-        <div class="modal-content" style="max-width:400px;">
+        <div class="modal-content" style="max-width:420px;">
             <div class="modal-header">
-                <h3>Registrar Pago</h3>
+                <h3 style="font-weight:950; color:#0f172a;">Registrar Pago</h3>
                 <button class="close-modal" onclick="closeModal('modal-pagar')">&times;</button>
             </div>
             <form id="form-pagar">
                 <input type="hidden" id="p-venda-id">
                 <input type="hidden" id="p-cuota-idx">
 
-                <div style="text-align:center; margin:15px 0; background:#f9f9f9; padding:15px; border-radius:5px;">
-                    <h2 id="p-valor-display" style="color:var(--success)"></h2>
-                    <small>Valor Original de la Cuota</small>
+                <div style="text-align:center; margin:12px 0; background:rgba(39,174,96,0.08); border:1px solid rgba(39,174,96,0.18); padding:12px; border-radius:14px;">
+                    <h2 id="p-valor-display" style="color:var(--success); font-weight:950;"></h2>
+                    <small style="font-weight:800; color:#334155;">Valor Original de la Cuota</small>
                 </div>
 
                 <div class="input-group">
                     <label>Monto a Pagar (Amortizable)</label>
-                    <input type="number" id="p-valor-real" step="0.01" required style="font-size:1.3rem; font-weight:bold; color:green; text-align:center;" oninput="window.showPreview(this, 'preview-p-valor', document.getElementById('p-valor-display').innerText.substring(0,3))">
-                    <span id="preview-p-valor" class="number-preview" style="width:100%; text-align:center; margin-top:5px;">0,00</span>
+                    <input type="number" id="p-valor-real" step="0.01" required style="font-size:1.2rem; font-weight:950; color:#166534; text-align:center;"
+                           oninput="window.showPreview(this, 'preview-p-valor', document.getElementById('p-valor-display').innerText.substring(0,3))">
+                    <span id="preview-p-valor" class="number-preview" style="width:100%; text-align:center; margin-top:8px;">0,00</span>
                 </div>
 
-                <div id="div-tc" class="input-group hidden" style="background:#fff3cd; padding:10px;">
+                <div id="div-tc" class="input-group hidden" style="background:#fff3cd; padding:10px; border-radius:14px; border:1px solid rgba(243,156,18,0.35);">
                     <label>T.C. Día (Bs/USD)</label>
                     <input type="number" id="p-tc" value="6.96" step="0.01">
                 </div>
@@ -780,7 +1009,7 @@
                     <input type="date" id="p-data" required>
                 </div>
 
-                <button type="submit" class="btn btn-s w-100">Confirmar Recepción</button>
+                <button type="submit" class="btn btn-s w-100"><i class="fas fa-check"></i> Confirmar Recepción</button>
             </form>
         </div>
     </div>
@@ -788,7 +1017,7 @@
     <div id="modal-edit" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Editar / Detalles</h3>
+                <h3 style="font-weight:950; color:#0f172a;">Editar / Detalles</h3>
                 <button class="close-modal" onclick="closeModal('modal-edit')">&times;</button>
             </div>
             <form id="form-edit">
@@ -798,15 +1027,15 @@
                 <div class="input-group"><label>Valor / Precio</label><input type="number" id="e-valor" step="0.01"></div>
                 <div class="input-group"><label>Notas / Observaciones</label><textarea id="e-notas" rows="3"></textarea></div>
 
-                <label><strong>Archivos (Fotos/PDF):</strong></label>
+                <label style="font-weight:950; color:#0f172a;"><strong>Archivos (Fotos/PDF):</strong></label>
                 <div id="e-gallery" class="gallery"></div>
 
-                <div class="input-group" style="margin-top:15px;">
+                <div class="input-group" style="margin-top:14px;">
                     <label><i class="fas fa-plus"></i> Agregar archivos</label>
                     <input type="file" id="e-new-files" multiple accept="image/*,.pdf">
                 </div>
 
-                <div class="text-right" style="margin-top:20px;">
+                <div class="text-right" style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
                     <button type="button" onclick="closeModal('modal-edit')" class="btn btn-g">Cerrar</button>
                     <button type="submit" class="btn btn-p">Guardar Cambios</button>
                 </div>
@@ -815,9 +1044,9 @@
     </div>
 
     <div id="modal-detalles" class="modal hidden">
-        <div class="modal-content" style="max-width:700px;">
+        <div class="modal-content" style="max-width:760px;">
             <div class="modal-header">
-                <h3>Detalles Completos</h3>
+                <h3 style="font-weight:950; color:#0f172a;">Detalles Completos</h3>
                 <button class="close-modal" onclick="closeModal('modal-detalles')">&times;</button>
             </div>
             <div id="detalles-contenido"></div>
@@ -841,6 +1070,143 @@
         const BUCKET_ID = 'bucket_fotos';
 
         let terrenos = [], vendas = [], user = null;
+
+        // ==============================
+        // FIX REGISTRO: POOL DE ARCHIVOS (acumula selecciones)
+        // ==============================
+        let terrenoFilePool = []; // Array<File>
+        let terrenoPoolObjectUrls = new Map(); // key -> objectURL (para previsualizar)
+
+        function fileKey(f) {
+            try {
+                return `${f.name || ''}|${f.size || 0}|${f.lastModified || 0}`;
+            } catch (_) {
+                return String(Math.random());
+            }
+        }
+
+        function safeRevokeObjectURL(url) {
+            try { if (url) URL.revokeObjectURL(url); } catch (_) {}
+        }
+
+        function isPoolPdf(file) {
+            const name = String(file?.name || '').toLowerCase();
+            const type = String(file?.type || '').toLowerCase();
+            return type === 'application/pdf' || name.endsWith('.pdf');
+        }
+
+        function isPoolImage(file) {
+            const type = String(file?.type || '').toLowerCase();
+            if (type.startsWith('image/')) return true;
+            const name = String(file?.name || '').toLowerCase();
+            return name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png') || name.endsWith('.webp') || name.endsWith('.gif') || name.endsWith('.heic') || name.endsWith('.heif') || name.endsWith('.bmp') || name.endsWith('.svg');
+        }
+
+        function renderTerrenoFilePool() {
+            const box = document.getElementById('t-files-pool');
+            const counter = document.getElementById('t-files-count');
+            if (!box || !counter) return;
+
+            box.innerHTML = '';
+            counter.innerText = terrenoFilePool.length ? `${terrenoFilePool.length} archivo(s) seleccionados` : '';
+
+            terrenoFilePool.forEach((f, idx) => {
+                const key = fileKey(f);
+                const isPdf = isPoolPdf(f);
+                const name = f?.name || 'Archivo';
+
+                let content = '';
+                if (isPdf) {
+                    content = `
+                        <div style="cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; padding-top:6px;"
+                             onclick="previewPoolFile(${idx})">
+                            <i class="fas fa-file-pdf pdf-icon"></i>
+                            <div class="file-name" title="${name}">${name}</div>
+                        </div>
+                    `;
+                } else {
+                    let url = terrenoPoolObjectUrls.get(key);
+                    if (!url && isPoolImage(f)) {
+                        try {
+                            url = URL.createObjectURL(f);
+                            terrenoPoolObjectUrls.set(key, url);
+                        } catch (_) { url = ''; }
+                    }
+                    content = `
+                        <img src="${url || ''}" alt="${name}" onclick="previewPoolFile(${idx})"
+                             onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;padding:10px;text-align:center;font-weight:900;color:#64748b;&quot;>Imagen no previsualizable</div>';">
+                        <div class="file-name" title="${name}">${name}</div>
+                    `;
+                }
+
+                box.innerHTML += `
+                    <div class="img-preview-box" title="${name}">
+                        ${content}
+                        <div class="btn-del-img" onclick="event.stopPropagation(); removePoolFile(${idx})">X</div>
+                    </div>
+                `;
+            });
+        }
+
+        window.previewPoolFile = (idx) => {
+            const f = terrenoFilePool[idx];
+            if (!f) return;
+            try {
+                const url = URL.createObjectURL(f);
+                window.open(url, '_blank', 'noopener,noreferrer');
+                // no revocamos inmediatamente para no romper la vista; se limpia al "Limpiar archivos" o al salvar
+            } catch (_) {}
+        };
+
+        window.removePoolFile = (idx) => {
+            const f = terrenoFilePool[idx];
+            if (!f) return;
+            const key = fileKey(f);
+            const u = terrenoPoolObjectUrls.get(key);
+            if (u) {
+                safeRevokeObjectURL(u);
+                terrenoPoolObjectUrls.delete(key);
+            }
+            terrenoFilePool.splice(idx, 1);
+            renderTerrenoFilePool();
+        };
+
+        window.clearTerrenoFilePool = () => {
+            // revoke URLs
+            try {
+                for (const u of terrenoPoolObjectUrls.values()) safeRevokeObjectURL(u);
+            } catch (_) {}
+            terrenoPoolObjectUrls.clear();
+            terrenoFilePool = [];
+            renderTerrenoFilePool();
+        };
+
+        // Al cambiar el input, acumula en pool (no reemplaza)
+        function setupTerrenoPoolInput() {
+            const input = document.getElementById('t-files');
+            if (!input) return;
+
+            input.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files || []);
+                if (!files.length) return;
+
+                // acumula evitando duplicados exactos
+                const existing = new Set(terrenoFilePool.map(fileKey));
+                files.forEach(f => {
+                    const k = fileKey(f);
+                    if (!existing.has(k)) {
+                        terrenoFilePool.push(f);
+                        existing.add(k);
+                    }
+                });
+
+                // limpia input para permitir seleccionar otra vez (y que "sume")
+                try { input.value = ''; } catch (_) {}
+                renderTerrenoFilePool();
+            });
+
+            renderTerrenoFilePool();
+        }
 
         // ------------------------------
         // HELPERS (AJUSTE DEFINITIVO)
@@ -965,66 +1331,6 @@
             window.open(u, '_blank', 'noopener,noreferrer');
         };
 
-        function inferExtFromMime(mime) {
-            const m = String(mime || '').toLowerCase().trim();
-            if (m === 'application/pdf') return 'pdf';
-            if (m === 'image/jpeg') return 'jpg';
-            if (m === 'image/jpg') return 'jpg';
-            if (m === 'image/png') return 'png';
-            if (m === 'image/webp') return 'webp';
-            if (m === 'image/gif') return 'gif';
-            if (m === 'image/heic') return 'heic';
-            if (m === 'image/heif') return 'heic';
-            if (m === 'image/svg+xml') return 'svg';
-            return '';
-        }
-
-        function sanitizeFileForUpload(file) {
-            try {
-                const originalName = String(file && file.name ? file.name : '');
-                const mime = String(file && file.type ? file.type : '');
-
-                let ext = getExt(originalName);
-                if (ext === 'jpeg') ext = 'jpg';
-                if (ext === 'heif') ext = 'heic';
-
-                if (!ext) {
-                    ext = inferExtFromMime(mime);
-                }
-
-                if (!ext) {
-                    ext = 'bin';
-                }
-
-                let base = originalName;
-                const dot = base.lastIndexOf('.');
-                if (dot !== -1) base = base.slice(0, dot);
-                base = String(base || '').trim();
-
-                if (!base) {
-                    base = 'archivo_' + Date.now();
-                }
-
-                const safeName = base + '.' + ext;
-
-                if (safeName !== originalName) {
-                    try {
-                        const safeFile = new File([file], safeName, {
-                            type: file.type || mime || '',
-                            lastModified: file.lastModified || Date.now()
-                        });
-                        return { file: safeFile, safeName, originalName, ext };
-                    } catch (_) {
-                        return { file, safeName: originalName, originalName, ext: getExt(originalName) || ext };
-                    }
-                }
-
-                return { file, safeName, originalName, ext };
-            } catch (e) {
-                return { file, safeName: (file && file.name) ? file.name : 'archivo', originalName: (file && file.name) ? file.name : 'archivo', ext: '' };
-            }
-        }
-
         // ------------------------------
         // Permisos de Seguridad
         // ------------------------------
@@ -1047,8 +1353,11 @@
                 document.getElementById('app-container').classList.remove('hidden');
                 document.getElementById('user-email-display').innerText = user.email;
                 initDateFilters();
+                setupTerrenoPoolInput(); // <-- activa el pool al entrar
                 loadData();
-            } catch (e) { console.log("Login necesario"); }
+            } catch (e) {
+                console.log("Login necesario");
+            }
         }
         checkSession();
 
@@ -1064,14 +1373,25 @@
             e.preventDefault();
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
-            try { await account.createEmailPasswordSession(email, pass); checkSession(); }
-            catch (error) {
-                if (error.message.includes('session is active')) { checkSession(); return; }
-                try { await account.create(ID.unique(), email, pass); await account.createEmailPasswordSession(email, pass); checkSession(); }
-                catch (ce) { document.getElementById('login-msg').innerText = "Error: " + error.message; }
+            try {
+                await account.createEmailPasswordSession(email, pass);
+                checkSession();
+            } catch (error) {
+                if (error.message && error.message.includes('session is active')) { checkSession(); return; }
+                try {
+                    await account.create(ID.unique(), email, pass);
+                    await account.createEmailPasswordSession(email, pass);
+                    checkSession();
+                } catch (ce) {
+                    document.getElementById('login-msg').innerText = "Error: " + (error.message || String(error));
+                }
             }
         });
-        window.logout = async () => { await account.deleteSession('current'); location.reload(); }
+
+        window.logout = async () => {
+            await account.deleteSession('current');
+            location.reload();
+        };
 
         // ------------------------------
         // DATA
@@ -1093,94 +1413,70 @@
                     return { $id: d.$id, ...parsed };
                 });
 
-                renderTerrenos(); renderVendas(); updateDashboard();
-            } catch (e) { console.error(e); }
+                renderTerrenos();
+                renderVendas();
+                updateDashboard();
+            } catch (e) {
+                console.error(e);
+            }
             document.getElementById('loader').classList.add('hidden');
         }
 
         // ------------------------------
-        // UPLOAD (CORRIGIDO): guarda fileId, mime, ext, size + sanitiza nome/ext
+        // UPLOAD (CORRIGIDO): acepta input o Array<File>
         // ------------------------------
-        async function uploadFiles(filesInput) {
-            const result = { filesData: [], failures: [], selectedCount: 0 };
+        async function uploadFiles(source) {
+            let fileList = [];
 
-            if (!filesInput || !filesInput.files || !filesInput.files.length) return result;
+            // source puede ser input o array de File
+            if (Array.isArray(source)) {
+                fileList = source;
+            } else if (source && source.files) {
+                fileList = Array.from(source.files || []);
+            }
 
-            result.selectedCount = filesInput.files.length;
+            if (!fileList.length) return [];
 
-            for (let i = 0; i < filesInput.files.length; i++) {
-                const originalFile = filesInput.files[i];
+            let filesData = [];
+            for (let i = 0; i < fileList.length; i++) {
                 try {
-                    const sanitized = sanitizeFileForUpload(originalFile);
-                    const fileToSend = sanitized.file;
+                    const file = fileList[i];
+                    const res = await storage.createFile(BUCKET_ID, ID.unique(), file, getPermissions());
 
-                    const res = await storage.createFile(BUCKET_ID, ID.unique(), fileToSend, getPermissions());
-
-                    const safeMime = (fileToSend && fileToSend.type) ? fileToSend.type : (originalFile.type || '');
-                    const safeName = (fileToSend && fileToSend.name) ? fileToSend.name : (originalFile.name || 'Archivo');
-                    const ext = getExt(safeName) || sanitized.ext || getExt(originalFile.name);
-
-                    const isPdf = (String(safeMime).toLowerCase() === 'application/pdf') || String(ext).toLowerCase() === 'pdf' || safeName.toLowerCase().endsWith('.pdf');
-
-                    result.filesData.push({
+                    const isPdf = (file.type === 'application/pdf') || String(file.name || '').toLowerCase().endsWith('.pdf');
+                    filesData.push({
                         id: res.$id,
-                        name: safeName,
-                        mime: safeMime || '',
-                        ext: ext || '',
-                        size: (originalFile && typeof originalFile.size === 'number') ? originalFile.size : 0,
+                        name: file.name,
+                        mime: file.type || '',
+                        ext: getExt(file.name),
+                        size: file.size || 0,
                         isPdf: isPdf,
                         createdAt: new Date().toISOString()
                     });
                 } catch (e) {
+                    console.error("Upload error", e);
                     const msg =
                         (e && e.message) ? e.message :
                         (typeof e === "string") ? e :
                         JSON.stringify(e);
-
-                    result.failures.push({
-                        name: (originalFile && originalFile.name) ? originalFile.name : 'Archivo',
-                        error: msg
-                    });
-
-                    console.error("Upload error", e);
+                    alert("Error subiendo archivo.\n\n" + msg);
                 }
             }
 
-            if (result.failures.length) {
-                let txt = "Error subiendo archivo(s):\n\n";
-                result.failures.forEach((f, idx) => {
-                    txt += (idx + 1) + ") " + f.name + "\n" + f.error + "\n\n";
-                });
-                alert(txt);
-            }
-
-            try { filesInput.value = ''; } catch (_) {}
-            return result;
+            // si era input, lo limpiamos
+            try { if (source && source.value !== undefined) source.value = ''; } catch (_) {}
+            return filesData;
         }
-        
-                // ------------------------------
-        // TERRENOS
+
+        // ------------------------------
+        // TERRENOS (FIX: usa el pool acumulado)
         // ------------------------------
         document.getElementById('form-terreno').addEventListener('submit', async (e) => {
             e.preventDefault();
             document.getElementById('loader').classList.remove('hidden');
 
-            const inputFiles = document.getElementById('t-files');
-            const up = await uploadFiles(inputFiles);
-
-            // REGISTRO: si el usuario seleccionó archivos, TODOS deben subir.
-            // Si alguno falla, NO guardamos el terreno para evitar "guardar solo PDF".
-            if (up.selectedCount > 0 && up.failures.length > 0) {
-                document.getElementById('loader').classList.add('hidden');
-                return;
-            }
-            if (up.selectedCount > 0 && up.filesData.length === 0) {
-                alert("No se pudo subir ningún archivo. Verifique los formatos permitidos en Storage.");
-                document.getElementById('loader').classList.add('hidden');
-                return;
-            }
-
-            const files = up.filesData;
+            // Subir TODO lo acumulado en el pool
+            const uploaded = await uploadFiles(terrenoFilePool);
 
             const data = {
                 codigo: document.getElementById('t-codigo').value,
@@ -1189,19 +1485,24 @@
                 moneda: document.getElementById('t-moneda').value,
                 precio: parseFloat(document.getElementById('t-precio').value),
                 notas: document.getElementById('t-notas').value,
-                fotos: normalizeFotos(files),
+                fotos: normalizeFotos(uploaded),
                 estado: 'Disponible',
                 habilitado: true
             };
 
             await db.createDocument(DB_ID, COL_TERRENOS, ID.unique(), { dados: JSON.stringify(data) }, getPermissions());
+
+            // reset form + limpiar pool (para que no se “mezcle” con el siguiente registro)
             document.getElementById('form-terreno').reset();
+            clearTerrenoFilePool();
+
             nav('listado');
             loadData();
         });
 
         function renderTerrenos() {
-            const b = document.getElementById('lista-terrenos'); b.innerHTML = '';
+            const b = document.getElementById('lista-terrenos');
+            b.innerHTML = '';
             const f = document.getElementById('search-land').value.toLowerCase();
 
             terrenos.forEach(t => {
@@ -1214,7 +1515,7 @@
                 const images = files.filter(x => !isPdfFile(x) && isImageByNameOrMime(x));
                 const cover = images[0] || files.find(x => !isPdfFile(x)) || files[0] || null;
 
-                let thumbInner = `<div style="width:60px;height:60px;background:#eee;border-radius:4px;"></div>`;
+                let thumbInner = `<div style="width:62px;height:62px;background:rgba(15,23,42,0.06);border-radius:12px;border:1px dashed rgba(15,23,42,0.14);"></div>`;
                 if (cover) {
                     const url = getFileUrl(cover);
                     const pdf = isPdfFile(cover);
@@ -1229,8 +1530,8 @@
                 const imgHtml = `<div class="thumb-container" onclick="verDetalles('${t.$id}', 'land')">${thumbInner}${badge}</div>`;
 
                 let btn = t.estado === 'Disponible'
-                    ? `<button class="btn btn-p" style="padding:5px 10px" onclick="openVenda('${t.$id}')">Vender</button>`
-                    : `<span class="status-badge status-vendido">Vendido</span>`;
+                    ? `<button class="btn btn-p" style="padding:7px 10px; border-radius:12px;" onclick="openVenda('${t.$id}')">Vender</button>`
+                    : `<span class="status-badge status-vendido"><i class="fas fa-lock"></i> Vendido</span>`;
 
                 b.innerHTML += `<tr>
                     <td>${imgHtml}</td>
@@ -1239,10 +1540,10 @@
                     <td>${new Intl.NumberFormat('es-BO').format(t.area)} m²</td>
                     <td>${t.moneda} ${new Intl.NumberFormat('es-BO').format(t.precio)}</td>
                     <td>${t.estado}</td>
-                    <td>
-                        <button class="btn btn-g" onclick="openEdit('${t.$id}', 'land')"><i class="fas fa-edit"></i></button>
+                    <td style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-g btn-sm" onclick="openEdit('${t.$id}', 'land')"><i class="fas fa-edit"></i></button>
                         ${btn}
-                        <button class="btn btn-d" onclick="deleteItem('${t.$id}', 'land')"><i class="fas fa-trash"></i></button>
+                        <button class="btn btn-d btn-sm" onclick="deleteItem('${t.$id}', 'land')"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
             });
@@ -1262,7 +1563,7 @@
             window.showPreview(document.getElementById('v-total'), 'preview-v-total', t.moneda);
             window.showPreview(document.getElementById('v-entrada'), 'preview-v-entrada', t.moneda);
             document.getElementById('modal-venda').classList.remove('hidden');
-        }
+        };
 
         document.getElementById('form-venda').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1271,8 +1572,7 @@
             const tId = document.getElementById('v-land-id').value;
             const terreno = terrenos.find(x => x.$id === tId);
 
-            const up = await uploadFiles(document.getElementById('v-files'));
-            const files = up.filesData;
+            const files = await uploadFiles(document.getElementById('v-files'));
 
             const total = parseFloat(document.getElementById('v-total').value);
             const ent = parseFloat(document.getElementById('v-entrada').value);
@@ -1281,9 +1581,9 @@
             const today = new Date().toISOString().split('T')[0];
 
             let cuotas = [];
-            for(let i=0; i<qtd; i++) {
+            for (let i = 0; i < qtd; i++) {
                 let dt = new Date(data1); dt.setMonth(dt.getMonth() + i);
-                cuotas.push({ n: i+1, valor: (total-ent)/qtd, venc: dt.toISOString().split('T')[0], pago: false });
+                cuotas.push({ n: i + 1, valor: (total - ent) / qtd, venc: dt.toISOString().split('T')[0], pago: false });
             }
 
             const venda = {
@@ -1320,19 +1620,43 @@
             vendas.forEach(v => {
                 if (!v.cliente.toLowerCase().includes(f)) return;
 
-                l2.innerHTML += `<tr><td>${v.$id.substring(0,5)}</td><td>${v.cliente}</td><td>${v.landNome}</td><td>${v.moneda} ${new Intl.NumberFormat('es-BO').format(v.total)}</td><td><button class="btn btn-w" onclick="openEdit('${v.$id}', 'sale')"><i class="fas fa-edit"></i></button> <button class="btn btn-d" onclick="deleteItem('${v.$id}', 'sale')"><i class="fas fa-trash"></i></button></td></tr>`;
+                l2.innerHTML += `<tr>
+                    <td>${v.$id.substring(0,5)}</td>
+                    <td>${v.cliente}</td>
+                    <td>${v.landNome}</td>
+                    <td>${v.moneda} ${new Intl.NumberFormat('es-BO').format(v.total)}</td>
+                    <td style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-w btn-sm" onclick="openEdit('${v.$id}', 'sale')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-d btn-sm" onclick="deleteItem('${v.$id}', 'sale')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
 
                 let pendente = v.cuotas.find(c => !c.pago);
                 if (!pendente) {
-                    l3.innerHTML += `<tr><td>${v.cliente}</td><td>${v.landNome}</td><td style="color:var(--success);font-weight:bold">${v.moneda} ${new Intl.NumberFormat('es-BO').format(v.total)}</td><td><span class="status-badge status-disponible">PAGADO</span></td><td><button class="btn btn-g" onclick="openEdit('${v.$id}', 'sale')">Ver</button></td></tr>`;
+                    l3.innerHTML += `<tr>
+                        <td>${v.cliente}</td>
+                        <td>${v.landNome}</td>
+                        <td style="color:var(--success);font-weight:950">${v.moneda} ${new Intl.NumberFormat('es-BO').format(v.total)}</td>
+                        <td><span class="status-badge status-disponible"><i class="fas fa-check"></i> PAGADO</span></td>
+                        <td><button class="btn btn-g btn-sm" onclick="openEdit('${v.$id}', 'sale')">Ver</button></td>
+                    </tr>`;
                 } else {
-                    let cor = new Date(pendente.venc) < new Date() ? 'red' : '#333';
-                    l1.innerHTML += `<tr><td><strong>${v.cliente}</strong></td><td>${v.landNome}</td><td>${pendente.n}/${v.cuotas.length}</td><td style="color:${cor};font-weight:bold">${pendente.venc}</td><td>${v.moneda} ${new Intl.NumberFormat('es-BO').format(pendente.valor)}</td><td><button class="btn btn-s" onclick="openPagar('${v.$id}', ${pendente.n})">Cobrar</button></td></tr>`;
+                    let cor = new Date(pendente.venc) < new Date() ? 'red' : '#0f172a';
+                    l1.innerHTML += `<tr>
+                        <td><strong>${v.cliente}</strong></td>
+                        <td>${v.landNome}</td>
+                        <td>${pendente.n}/${v.cuotas.length}</td>
+                        <td style="color:${cor};font-weight:950">${pendente.venc}</td>
+                        <td>${v.moneda} ${new Intl.NumberFormat('es-BO').format(pendente.valor)}</td>
+                        <td><button class="btn btn-s btn-sm" onclick="openPagar('${v.$id}', ${pendente.n})">Cobrar</button></td>
+                    </tr>`;
                 }
             });
         }
 
-        // ------------------------------
+        // (continua en la PARTE 2/2)
+        
+                // ------------------------------
         // PAGOS
         // ------------------------------
         window.openPagar = (vId, n) => {
@@ -1343,10 +1667,10 @@
             document.getElementById('p-valor-display').innerText = v.moneda + ' ' + new Intl.NumberFormat('es-BO').format(c.valor);
             document.getElementById('p-valor-real').value = c.valor.toFixed(2);
             document.getElementById('p-data').value = new Date().toISOString().split('T')[0];
-            document.getElementById('div-tc').classList.toggle('hidden', v.moneda!=='USD');
+            document.getElementById('div-tc').classList.toggle('hidden', v.moneda !== 'USD');
             window.showPreview(document.getElementById('p-valor-real'), 'preview-p-valor', v.moneda);
             document.getElementById('modal-pagar').classList.remove('hidden');
-        }
+        };
 
         document.getElementById('form-pagar').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1360,19 +1684,29 @@
             const v = vendas.find(x => x.$id === vId);
             let saldo = pago, i = idx;
 
-            while(saldo > 0.1 && i < v.cuotas.length) {
+            while (saldo > 0.1 && i < v.cuotas.length) {
                 let c = v.cuotas[i];
-                if(c.pago) { i++; continue; }
-                if(saldo >= c.valor) { saldo -= c.valor; c.pago = true; c.valor_pago = c.valor; c.tc = tc; c.data_pago = dataPago; }
-                else { c.valor -= saldo; saldo = 0; }
+                if (c.pago) { i++; continue; }
+                if (saldo >= c.valor) {
+                    saldo -= c.valor;
+                    c.pago = true;
+                    c.valor_pago = c.valor;
+                    c.tc = tc;
+                    c.data_pago = dataPago;
+                } else {
+                    c.valor -= saldo;
+                    saldo = 0;
+                }
                 i++;
             }
+
             await db.updateDocument(DB_ID, COL_VENDAS, vId, { dados: JSON.stringify(v) });
-            closeModal('modal-pagar'); loadData();
+            closeModal('modal-pagar');
+            loadData();
         });
 
         // ------------------------------
-        // EDICIÓN Y DETALLES
+        // EDICIÓN Y DETALLES (PDF e imagen abren con <a> siempre)
         // ------------------------------
         window.openEdit = (id, type) => {
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
@@ -1396,7 +1730,7 @@
                 if (pdf) {
                     content = `
                         <a href="${url}" target="_blank" rel="noopener noreferrer"
-                           style="text-decoration:none; color:inherit; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                           style="text-decoration:none; color:inherit; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding-top:6px;">
                             <i class="fas fa-file-pdf pdf-icon"></i>
                             <div class="file-name" title="${name}">${name}</div>
                         </a>
@@ -1406,26 +1740,28 @@
                         <a href="${url}" target="_blank" rel="noopener noreferrer" style="width:100%; height:100%; display:block;">
                             <img src="${url}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;">
                         </a>
+                        <div class="file-name" title="${name}">${name}</div>
                     `;
                 }
 
                 g.innerHTML += `<div class="img-preview-box">
                     ${content}
-                    <div class="btn-del-img" onclick="event.preventDefault(); event.stopPropagation(); remFoto('${id}', '${type}', ${i})">X</div>
+                    <div class="btn-del-img" onclick="event.stopPropagation(); remFoto('${id}', '${type}', ${i})">X</div>
                 </div>`;
             });
 
             document.getElementById('modal-edit').classList.remove('hidden');
-        }
+        };
 
         window.remFoto = async (id, type, i) => {
-            if(!confirm("¿Borrar archivo?")) return;
+            if (!confirm("¿Borrar archivo?")) return;
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
             d.fotos = normalizeFotos(d.fotos);
             d.fotos.splice(i, 1);
-            await db.updateDocument(DB_ID, (type==='land'?COL_TERRENOS:COL_VENDAS), id, { dados: JSON.stringify(d) });
-            closeModal('modal-edit'); loadData();
-        }
+            await db.updateDocument(DB_ID, (type === 'land' ? COL_TERRENOS : COL_VENDAS), id, { dados: JSON.stringify(d) });
+            closeModal('modal-edit');
+            loadData();
+        };
 
         document.getElementById('form-edit').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1435,11 +1771,10 @@
 
             d.fotos = normalizeFotos(d.fotos);
 
-            const up = await uploadFiles(document.getElementById('e-new-files'));
-            const newFiles = up.filesData;
+            const newFiles = await uploadFiles(document.getElementById('e-new-files'));
             d.fotos = [...d.fotos, ...normalizeFotos(newFiles)];
 
-            if(type === 'land') {
+            if (type === 'land') {
                 d.nome = document.getElementById('e-nome').value;
                 d.precio = parseFloat(document.getElementById('e-valor').value);
                 d.notas = document.getElementById('e-notas').value;
@@ -1447,25 +1782,28 @@
                 d.cliente = document.getElementById('e-nome').value;
             }
 
-            await db.updateDocument(DB_ID, (type==='land'?COL_TERRENOS:COL_VENDAS), id, { dados: JSON.stringify(d) });
-            closeModal('modal-edit'); loadData();
+            await db.updateDocument(DB_ID, (type === 'land' ? COL_TERRENOS : COL_VENDAS), id, { dados: JSON.stringify(d) });
+            closeModal('modal-edit');
+            loadData();
         });
 
         window.deleteItem = async (id, type) => {
-            if(!confirm("¿Eliminar?")) return;
+            if (!confirm("¿Eliminar?")) return;
             document.getElementById('loader').classList.remove('hidden');
-            if(type === 'sale') {
+
+            if (type === 'sale') {
                 const v = vendas.find(x => x.$id === id);
                 const t = terrenos.find(x => x.$id === v.landId);
-                if(t) {
+                if (t) {
                     t.estado = 'Disponible';
                     t.fotos = normalizeFotos(t.fotos);
                     await db.updateDocument(DB_ID, COL_TERRENOS, t.$id, { dados: JSON.stringify(t) });
                 }
             }
-            await db.deleteDocument(DB_ID, (type==='land'?COL_TERRENOS:COL_VENDAS), id);
+
+            await db.deleteDocument(DB_ID, (type === 'land' ? COL_TERRENOS : COL_VENDAS), id);
             loadData();
-        }
+        };
 
         window.verDetalles = (id, type) => {
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
@@ -1477,7 +1815,7 @@
                 const pdf = isPdfFile(u);
                 const name = getFileName(u);
 
-                if(pdf) {
+                if (pdf) {
                     mediaHtml += `<a href="${url}" target="_blank" rel="noopener noreferrer" class="doc-link">
                         <i class="fas fa-file-pdf" style="color:var(--danger);font-size:1.2rem;"></i>
                         <span>${name}</span>
@@ -1491,103 +1829,114 @@
 
             const c = document.getElementById('detalles-contenido');
             c.innerHTML = (type === 'land')
-                ? `<h2>${d.nome}</h2>
-                   <p><strong>Precio:</strong> ${d.moneda} ${new Intl.NumberFormat('es-BO').format(d.precio)}</p>
-                   <p><strong>Superficie:</strong> ${new Intl.NumberFormat('es-BO').format(d.area)} m²</p>
-                   <p><strong>Estado:</strong> ${d.estado}</p>
-                   <p>${d.notas || ''}</p>
-                   <hr>${mediaHtml}`
-                : `<h2>${d.cliente}</h2><p><strong>CI:</strong> ${d.ci || ''}</p><hr>${mediaHtml}`;
+                ? `<h2 style="font-weight:950; color:#0f172a; margin-bottom:8px;">${d.nome}</h2>
+                   <p style="font-weight:900; color:#334155;"><strong>Precio:</strong> ${d.moneda} ${new Intl.NumberFormat('es-BO').format(d.precio)}</p>
+                   <p style="font-weight:900; color:#334155;"><strong>Superficie:</strong> ${new Intl.NumberFormat('es-BO').format(d.area)} m²</p>
+                   <p style="font-weight:900; color:#334155;"><strong>Estado:</strong> ${d.estado}</p>
+                   <p style="color:#334155; margin-top:6px;">${d.notas || ''}</p>
+                   <hr style="margin:12px 0; border:0; border-top:1px solid rgba(15,23,42,0.08);">${mediaHtml}`
+                : `<h2 style="font-weight:950; color:#0f172a; margin-bottom:8px;">${d.cliente}</h2>
+                   <p style="font-weight:900; color:#334155;"><strong>CI:</strong> ${d.ci || ''}</p>
+                   <hr style="margin:12px 0; border:0; border-top:1px solid rgba(15,23,42,0.08);">${mediaHtml}`;
 
             document.getElementById('modal-detalles').classList.remove('hidden');
-        }
+        };
 
         // ------------------------------
         // UTILS
         // ------------------------------
         window.nav = (v) => {
             document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden'));
-            document.getElementById('view-'+v).classList.remove('hidden');
+            document.getElementById('view-' + v).classList.remove('hidden');
             document.querySelectorAll('.menu button').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-'+v).classList.add('active');
-            if(v==='listado') renderTerrenos();
-            if(v==='ventas') renderVendas();
-        }
+            document.getElementById('btn-' + v).classList.add('active');
 
-        window.switchVendas=(t)=>{
+            const titles = {
+                resumen: "Resumen General",
+                registro: "Registrar Terreno",
+                listado: "Inventario",
+                ventas: "Ventas"
+            };
+            document.getElementById('page-title').innerText = titles[v] || "Panel";
+
+            if (v === 'listado') renderTerrenos();
+            if (v === 'ventas') renderVendas();
+        };
+
+        window.switchVendas = (t) => {
             document.getElementById('tab-vendas-resumo').classList.add('hidden');
             document.getElementById('tab-vendas-hist').classList.add('hidden');
             document.getElementById('tab-vendas-completos').classList.add('hidden');
-            document.getElementById('tab-vendas-'+t).classList.remove('hidden');
-        }
+            document.getElementById('tab-vendas-' + t).classList.remove('hidden');
+        };
 
-        window.closeModal=(id)=>document.getElementById(id).classList.add('hidden');
+        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
 
-        window.showPreview=(i, id, type)=>{
+        window.showPreview = (i, id, type) => {
             let val = parseFloat(i.value);
-            if(isNaN(val)) val = 0;
+            if (isNaN(val)) val = 0;
             let res = '';
-            if(type === 'm²') res = new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(val) + ' m²';
-            else res = new Intl.NumberFormat('es-BO', { style: 'currency', currency: (type==='Ref' || type.length>3)?'BOB':type }).format(val);
-            if(type==='Ref') res = res.replace('Bs', '');
+            if (type === 'm²') res = new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(val) + ' m²';
+            else res = new Intl.NumberFormat('es-BO', { style: 'currency', currency: (type === 'Ref' || type.length > 3) ? 'BOB' : type }).format(val);
+            if (type === 'Ref') res = res.replace('Bs', '');
             document.getElementById(id).innerText = res;
-        }
+        };
 
-        window.calcLive=()=>{
-            const p = parseFloat(document.getElementById('v-total').value)||0,
-                  e = parseFloat(document.getElementById('v-entrada').value)||0,
-                  c = parseInt(document.getElementById('v-ncuotas').value)||1;
+        window.calcLive = () => {
+            const p = parseFloat(document.getElementById('v-total').value) || 0,
+                  e = parseFloat(document.getElementById('v-entrada').value) || 0,
+                  c = parseInt(document.getElementById('v-ncuotas').value) || 1;
             const m = document.getElementById('lbl-moneda-venda').innerText || 'BOB';
             document.getElementById('live-result-text').innerText =
-                new Intl.NumberFormat('es-BO', { style: 'currency', currency: m }).format((p-e)/c);
-        }
+                new Intl.NumberFormat('es-BO', { style: 'currency', currency: m }).format((p - e) / c);
+        };
 
-        function updateDashboard(){
-            document.getElementById('kpi-total').innerText=terrenos.length;
-            document.getElementById('kpi-disp').innerText=terrenos.filter(t=>t.estado==='Disponible').length;
-            document.getElementById('kpi-vendidos').innerText=terrenos.filter(t=>t.estado==='Vendido').length;
+        function updateDashboard() {
+            document.getElementById('kpi-total').innerText = terrenos.length;
+            document.getElementById('kpi-disp').innerText = terrenos.filter(t => t.estado === 'Disponible').length;
+            document.getElementById('kpi-vendidos').innerText = terrenos.filter(t => t.estado === 'Vendido').length;
 
             const s = document.getElementById('filter-date-start').value,
                   e = document.getElementById('filter-date-end').value;
 
             const start = s ? new Date(s) : new Date(0),
                   end = e ? new Date(e) : new Date(8640000000000000);
-            end.setHours(23,59,59,999);
+            end.setHours(23, 59, 59, 999);
 
             let rec = 0;
             vendas.forEach(v => {
                 let dEnt = v.fecha_entrada ? new Date(v.fecha_entrada) : new Date(v.data);
                 if (dEnt >= start && dEnt <= end) {
                     let pg = v.entrada;
-                    if(v.moneda==='USD') pg *= 6.96;
+                    if (v.moneda === 'USD') pg *= 6.96;
                     rec += pg;
                 }
                 v.cuotas.forEach(c => {
-                    if(c.pago && c.data_pago) {
+                    if (c.pago && c.data_pago) {
                         let dC = new Date(c.data_pago);
-                        if(dC >= start && dC <= end) {
-                            let val = c.valor_pago||c.valor;
-                            if(v.moneda==='USD') val *= (c.tc||6.96);
+                        if (dC >= start && dC <= end) {
+                            let val = c.valor_pago || c.valor;
+                            if (v.moneda === 'USD') val *= (c.tc || 6.96);
                             rec += val;
                         }
                     }
                 });
             });
 
-            document.getElementById('kpi-money').innerText = "Bs " + rec.toLocaleString('es-BO', {minimumFractionDigits: 2});
+            document.getElementById('kpi-money').innerText = "Bs " + rec.toLocaleString('es-BO', { minimumFractionDigits: 2 });
 
             const ctx1 = document.getElementById('chart-fin').getContext('2d');
-            if(window.ch1) window.ch1.destroy();
+            if (window.ch1) window.ch1.destroy();
             window.ch1 = new Chart(ctx1, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Disp','Vend'],
-                    datasets:[{
-                        data:[
-                            terrenos.filter(t=>t.estado==='Disponible').length,
-                            terrenos.filter(t=>t.estado==='Vendido').length
+                    labels: ['Disp', 'Vend'],
+                    datasets: [{
+                        data: [
+                            terrenos.filter(t => t.estado === 'Disponible').length,
+                            terrenos.filter(t => t.estado === 'Vendido').length
                         ],
-                        backgroundColor:['#27ae60','#7f8c8d']
+                        backgroundColor: ['#27ae60', '#7f8c8d']
                     }]
                 },
                 options: { maintainAspectRatio: false }
