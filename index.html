@@ -550,14 +550,42 @@
             box-shadow: 0 10px 22px rgba(0,0,0,0.06);
             flex-wrap: wrap;
         }
-        .debt-total-bar strong {
+
+        .debt-total-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 220px;
+        }
+
+        .debt-total-left strong {
             font-weight: 950;
             color: #0f172a;
         }
+
+        .debt-total-left small {
+            color: #334155;
+            font-weight: 800;
+            opacity: 0.9;
+        }
+
+        .debt-total-right {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-end;
+        }
+
         .debt-total-value {
             font-weight: 950;
             color: var(--danger);
             font-size: 1.08rem;
+        }
+
+        .debt-overdue-value {
+            font-weight: 950;
+            color: #7f1d1d;
+            font-size: 1.04rem;
         }
 
         /* Row colors for cobranzas table */
@@ -1098,8 +1126,14 @@
 
                             <!-- TOTAL DEUDA (solo cuando filtro = deudores) -->
                             <div id="ventas-debt-total" class="debt-total-bar hidden">
-                                <strong><i class="fas fa-scale-balanced" style="color:var(--danger);"></i> Deuda total (Ref. Bs)</strong>
-                                <span id="ventas-debt-total-value" class="debt-total-value">Bs 0,00</span>
+                                <div class="debt-total-left">
+                                    <strong><i class="fas fa-scale-balanced" style="color:var(--danger);"></i> Deudas (Ref. Bs)</strong>
+                                    <small>Resumen rápido de lo pendiente</small>
+                                </div>
+                                <div class="debt-total-right">
+                                    <span id="ventas-debt-total-value" class="debt-total-value">Total: Bs 0,00</span>
+                                    <span id="ventas-debt-overdue-value" class="debt-overdue-value">Vencido: Bs 0,00</span>
+                                </div>
                             </div>
 
                             <div class="table-wrap">
@@ -1502,10 +1536,7 @@
             }, { passive: true });
         }
 
-        /* (continua na PARTE 2/2) */
-        
-        
-            function renderTerrenoFilePool() {
+        function renderTerrenoFilePool() {
             const box = document.getElementById('t-files-pool');
             const counter = document.getElementById('t-files-count');
             if (!box || !counter) return;
@@ -1917,7 +1948,7 @@
                 setupTerrenoPoolInput();
                 setupVendaPoolInput();
                 setupEditPoolInput();
-                setupPullToRefresh(); /* <-- pull-to-refresh */
+                setupPullToRefresh();
                 loadData();
             } catch (e) {
                 console.log("Login necesario");
@@ -2190,6 +2221,19 @@
             return rem;
         }
 
+        function getOverdueDebtRefBs(v) {
+            let rem = 0;
+            try {
+                (v.cuotas || []).forEach(c => {
+                    if (c.pago) return;
+                    const dd = daysDiffFromToday(c.venc);
+                    if (dd !== null && dd <= 0) rem += (parseFloat(c.valor) || 0);
+                });
+            } catch (_) {}
+            if (String(v.moneda || '').toUpperCase() === 'USD') rem *= 6.96;
+            return rem;
+        }
+
         function buildCobranzasListFiltered() {
             const f = document.getElementById('search-venda').value.toLowerCase();
             const mode = (document.getElementById('filter-cobranzas')?.value || 'all');
@@ -2203,10 +2247,6 @@
 
                 const dd = daysDiffFromToday(pendente.venc);
 
-                /* REGRA NOVA:
-                   - overdue = dd <= 0  (hoje já entra vermelho)
-                   - near = dd > 0 && dd <= ALERT_DAYS
-                */
                 const isOverdue = (dd !== null && dd <= 0);
                 const isNear = (dd !== null && dd > 0 && dd <= ALERT_DAYS);
 
@@ -2242,19 +2282,28 @@
         function renderDebtTotalIfNeeded(cobranzasList) {
             const mode = (document.getElementById('filter-cobranzas')?.value || 'all');
             const bar = document.getElementById('ventas-debt-total');
-            const val = document.getElementById('ventas-debt-total-value');
-            if (!bar || !val) return;
+            const valTotal = document.getElementById('ventas-debt-total-value');
+            const valOverdue = document.getElementById('ventas-debt-overdue-value');
+            if (!bar || !valTotal || !valOverdue) return;
 
             if (mode !== 'debts') {
                 bar.classList.add('hidden');
-                val.innerText = 'Bs 0,00';
+                valTotal.innerText = 'Total: Bs 0,00';
+                valOverdue.innerText = 'Vencido: Bs 0,00';
                 return;
             }
 
             let totalRef = 0;
-            cobranzasList.forEach(x => { totalRef += getRemainingDebtRefBs(x.v); });
+            let overdueRef = 0;
 
-            val.innerText = 'Bs ' + totalRef.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            cobranzasList.forEach(x => {
+                totalRef += getRemainingDebtRefBs(x.v);
+                overdueRef += getOverdueDebtRefBs(x.v);
+            });
+
+            valTotal.innerText = 'Total: Bs ' + totalRef.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            valOverdue.innerText = 'Vencido: Bs ' + overdueRef.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
             bar.classList.remove('hidden');
         }
 
@@ -2333,7 +2382,6 @@
 
             const f = document.getElementById('search-venda').value.toLowerCase();
 
-            // Histórico e completados (mantém)
             vendas.forEach(v => {
                 if (!v.cliente.toLowerCase().includes(f)) return;
 
@@ -2360,7 +2408,6 @@
                 }
             });
 
-            // Cobranzas: ordenado + cores + topo + alertas + filtro deudores + total deuda
             const cobranzasList = buildCobranzasListFiltered();
             renderDebtTotalIfNeeded(cobranzasList);
             renderVentasAlerts(cobranzasList);
