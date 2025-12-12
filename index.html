@@ -399,7 +399,7 @@
 
         #page-title { font-weight: 950; letter-spacing: 0.2px; }
 
-        /* IMPORTANTE: scroll interno com momentum no iOS */
+        /* IMPORTANTE: scroll interno con momentum en iOS */
         #content {
             flex: 1;
             padding: 18px;
@@ -475,7 +475,7 @@
             border: 1px solid rgba(100,116,139,0.35);
         }
 
-        /* --- NUEVO: Estado Reservado --- */
+        /* NUEVO: Reservado */
         .status-reservado {
             background: rgba(243,156,18,0.18);
             color: #92400e;
@@ -1013,6 +1013,10 @@
                             <h1 id="kpi-disp" class="kpi-value">0</h1>
                         </div>
                         <div class="card kpi-card">
+                            <h4 class="kpi-title">Reservados</h4>
+                            <h1 id="kpi-reservados-mini" class="kpi-value" style="color:var(--warning);">0</h1>
+                        </div>
+                        <div class="card kpi-card">
                             <h4 class="kpi-title">Vendidos</h4>
                             <h1 id="kpi-vendidos" class="kpi-value">0</h1>
                         </div>
@@ -1020,6 +1024,17 @@
                             <h4 class="kpi-title" style="color:var(--accent); font-weight:950;">Recaudado (Ref. Bs)</h4>
                             <h1 id="kpi-money" class="kpi-value">0</h1>
                         </div>
+                    </div>
+
+                    <!-- NUEVO: Card de reservas al inicio (además del gráfico) -->
+                    <div class="card" style="border: 1px solid rgba(243,156,18,0.28); background: rgba(255,255,255,0.92);">
+                        <div class="flex justify-between items-center" style="flex-wrap:wrap; gap:10px;">
+                            <h4 class="kpi-title" style="color: var(--warning); font-weight: 950;">
+                                <i class="fas fa-bookmark"></i> Reservas Activas
+                            </h4>
+                            <span style="font-weight:900; color:#64748b;">Terrenos en estado “Reservado”</span>
+                        </div>
+                        <h1 id="kpi-reservas" class="kpi-value" style="color: var(--warning); margin-top:10px;">0</h1>
                     </div>
 
                     <div class="card">
@@ -1222,8 +1237,8 @@
             </div>
         </main>
     </div>
-    
-        <div id="modal-venda" class="modal hidden">
+
+    <div id="modal-venda" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 style="font-weight:950; color:#0f172a;">Realizar Venta</h3>
@@ -1231,13 +1246,16 @@
             </div>
             <form id="form-venda">
                 <input type="hidden" id="v-land-id">
-                <p id="v-reserva-warning" class="hidden" style="background:rgba(243,156,18,0.16); border:1px solid rgba(243,156,18,0.26); padding:12px; border-radius:14px; margin-bottom:12px; font-weight:900; color:#92400e;">
-                    <i class="fas fa-bookmark"></i> Este terreno está <strong>RESERVADO</strong>.
-                    <span id="v-reserva-warning-txt"></span>
-                </p>
                 <p style="background:rgba(41,128,185,0.08); border:1px solid rgba(41,128,185,0.14); padding:12px; border-radius:14px; margin-bottom:12px; font-weight:900;">
                     Terreno: <strong id="v-land-info"></strong>
                 </p>
+
+                <!-- NUEVO: aviso si está reservado -->
+                <div id="v-reserva-warning" class="hint-box hidden" style="background:rgba(243,156,18,0.14); border-color:rgba(243,156,18,0.28); margin-bottom:12px;">
+                    <strong><i class="fas fa-bookmark"></i> Este terreno está reservado.</strong>
+                    <small id="v-reserva-warning-text"></small>
+                </div>
+
                 <div class="flex gap-2" style="margin-bottom:10px; flex-wrap:wrap;">
                     <div class="input-group w-100" style="margin-bottom:0;">
                         <label>Precio Registrado (Base)</label>
@@ -1246,11 +1264,11 @@
                 </div>
 
                 <div class="flex gap-2" style="flex-wrap:wrap;">
-                    <div class="input-group w-100" style="margin-bottom:0;"><label>Cliente</label><input type="text" id="v-cliente" required></div>
-                    <div class="input-group w-100" style="margin-bottom:0;"><label>CI/Doc</label><input type="text" id="v-ci"></div>
+                    <div class="input-group w-100"><label>Cliente</label><input type="text" id="v-cliente" required></div>
+                    <div class="input-group w-100"><label>CI/Doc</label><input type="text" id="v-ci"></div>
                 </div>
 
-                <div class="input-group" style="margin-top:14px;">
+                <div class="input-group">
                     <label>Documentos (Fotos/PDF)</label>
                     <input type="file" id="v-files" multiple accept="image/*,.pdf">
                     <div class="hint-box">
@@ -1284,7 +1302,6 @@
                     </div>
                 </div>
 
-
                 <div class="flex gap-2" style="flex-wrap:wrap;">
                     <div class="input-group w-100">
                         <label>Precio Final</label>
@@ -1317,43 +1334,42 @@
         </div>
     </div>
 
-    <!-- NUEVO: MODAL RESERVA -->
+    <!-- NUEVO: Modal Reservar -->
     <div id="modal-reserva" class="modal hidden">
         <div class="modal-content" style="max-width:520px;">
             <div class="modal-header">
-                <h3 style="font-weight:950; color:#0f172a;">Reservar Terreno</h3>
+                <h3 style="font-weight:950; color:#0f172a;">Registrar Reserva</h3>
                 <button class="close-modal" onclick="closeModal('modal-reserva')">&times;</button>
             </div>
-
             <form id="form-reserva">
                 <input type="hidden" id="r-land-id">
 
-                <p style="background:rgba(243,156,18,0.14); border:1px solid rgba(243,156,18,0.22); padding:12px; border-radius:14px; margin-bottom:12px; font-weight:900; color:#92400e;">
-                    <i class="fas fa-bookmark"></i> Terreno: <strong id="r-land-info"></strong>
+                <p style="background:rgba(243,156,18,0.14); border:1px solid rgba(243,156,18,0.28); padding:12px; border-radius:14px; margin-bottom:12px; font-weight:900;">
+                    Terreno: <strong id="r-land-info"></strong>
                 </p>
 
                 <div class="input-group">
                     <label>Cliente (Reserva)</label>
-                    <input type="text" id="r-cliente" required placeholder="Nombre del cliente">
+                    <input type="text" id="r-cliente" required>
                 </div>
 
                 <div class="input-group">
                     <label>CI/Doc</label>
-                    <input type="text" id="r-ci" placeholder="Documento">
+                    <input type="text" id="r-ci">
                 </div>
 
                 <div class="input-group">
-                    <label>Fecha de Reserva</label>
-                    <input type="date" id="r-fecha" required>
+                    <label>Vence la Reserva (opcional)</label>
+                    <input type="date" id="r-vence">
                 </div>
 
                 <div class="input-group">
-                    <label>Notas (Reserva)</label>
-                    <textarea id="r-notas" rows="3" placeholder="Observaciones sobre la reserva..."></textarea>
+                    <label>Notas</label>
+                    <textarea id="r-notas" rows="3"></textarea>
                 </div>
 
-                <div class="text-right" style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
-                    <button type="button" class="btn btn-g" onclick="closeModal('modal-reserva')">Cancelar</button>
+                <div class="text-right" style="margin-top:12px; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
+                    <button type="button" onclick="closeModal('modal-reserva')" class="btn btn-g">Cancelar</button>
                     <button type="submit" class="btn btn-w"><i class="fas fa-bookmark"></i> Confirmar Reserva</button>
                 </div>
             </form>
@@ -1448,8 +1464,8 @@
             <div id="detalles-contenido"></div>
         </div>
     </div>
-
-    <script>
+    
+        <script>
         const { Client, Account, Databases, Storage, ID, Query, Permission, Role } = Appwrite;
         const client = new Client();
 
@@ -1467,18 +1483,6 @@
 
         let terrenos = [], vendas = [], user = null;
 
-        // Contexto de Venta (moneda/TC)
-        let vendaCtx = {
-            landId: null,
-            landMoneda: null,
-            landPrecio: null,
-            payMoneda: null,
-            tc: 6.96,
-            manualTotal: false,
-            manualEntrada: false,
-            programmatic: false
-        };
-
         let terrenoFilePool = [];
         let terrenoPoolObjectUrls = new Map();
 
@@ -1489,8 +1493,8 @@
         let editPoolObjectUrls = new Map();
         let editPoolSetupDone = false;
 
-        /* Config: alerta de "perto do vencimento" */
-        const ALERT_DAYS = 7; /* agora é 7 dias */
+        /* Config: alerta de "perto de vencimiento" */
+        const ALERT_DAYS = 7;
 
         function fileKey(f) {
             try { return `${f.name || ''}|${f.size || 0}|${f.lastModified || 0}`; }
@@ -1644,8 +1648,8 @@
                 }
             }, { passive: true });
         }
-        
-                function renderTerrenoFilePool() {
+
+        function renderTerrenoFilePool() {
             const box = document.getElementById('t-files-pool');
             const counter = document.getElementById('t-files-count');
             if (!box || !counter) return;
@@ -2038,119 +2042,17 @@
             window.open(u, '_blank', 'noopener,noreferrer');
         };
 
-        // ------------------------------
-        // VENTA: MONEDA DE PAGO + TIPO DE CAMBIO (para terrenos en USD)
-        // ------------------------------
-        function convertAmountCurrency(val, fromCur, toCur, tc) {
-            const v = parseFloat(val);
-            if (isNaN(v)) return 0;
-            const t = parseFloat(tc);
-            if (!fromCur || !toCur || fromCur === toCur) return v;
-            if (fromCur === 'USD' && toCur === 'BOB') return v * (isNaN(t) || t <= 0 ? 1 : t);
-            if (fromCur === 'BOB' && toCur === 'USD') return v / (isNaN(t) || t <= 0 ? 1 : t);
-            return v;
+        function safeCurrency(code){
+            const c = String(code || '').toUpperCase();
+            if (c === 'USD' || c === 'BOB') return c;
+            return 'BOB';
         }
 
-        function refreshVendaMoneyUI() {
-            const moeda = String(document.getElementById('lbl-moneda-venda').innerText || 'BOB');
-            window.calcLive();
-            window.showPreview(document.getElementById('v-total'), 'preview-v-total', moeda);
-            window.showPreview(document.getElementById('v-entrada'), 'preview-v-entrada', moeda);
+        function getTcRefBsPerUsd(v) {
+            const tc = parseFloat(v?.tc_venta);
+            if (isFinite(tc) && tc > 0) return tc;
+            return 6.96;
         }
-
-        function setupVendaManualGuards() {
-            const totalEl = document.getElementById('v-total');
-            const entEl = document.getElementById('v-entrada');
-            if (totalEl && !totalEl.dataset.boundVendaManual) {
-                totalEl.dataset.boundVendaManual = '1';
-                totalEl.addEventListener('input', () => {
-                    if (vendaCtx.programmatic) return;
-                    vendaCtx.manualTotal = true;
-                });
-            }
-            if (entEl && !entEl.dataset.boundVendaManual) {
-                entEl.dataset.boundVendaManual = '1';
-                entEl.addEventListener('input', () => {
-                    if (vendaCtx.programmatic) return;
-                    vendaCtx.manualEntrada = true;
-                });
-            }
-        }
-
-        window.onMonedaPagoChange = () => {
-            const tId = document.getElementById('v-land-id').value;
-            const terreno = terrenos.find(x => x.$id === tId);
-            if (!terreno) return;
-
-            const sel = document.getElementById('v-pay-currency');
-            const tcBox = document.getElementById('div-v-tc');
-            const tcEl = document.getElementById('v-tc');
-
-            const fromCur = String(vendaCtx.payMoneda || terreno.moneda || 'USD');
-            const toCur = String(sel.value || 'USD');
-
-            const tc = parseFloat(tcEl.value) || 0;
-            vendaCtx.tc = tc > 0 ? tc : vendaCtx.tc;
-
-            // Mostrar/ocultar TC si el pago es en BOB
-            if (toCur === 'BOB') tcBox.classList.remove('hidden');
-            else tcBox.classList.add('hidden');
-
-            vendaCtx.programmatic = true;
-
-            // Total
-            if (vendaCtx.manualTotal) {
-                const curVal = parseFloat(document.getElementById('v-total').value) || 0;
-                document.getElementById('v-total').value = convertAmountCurrency(curVal, fromCur, toCur, vendaCtx.tc).toFixed(2);
-            } else {
-                // Auto: usa precio original del terreno (USD) y TC si corresponde
-                if (terreno.moneda === 'USD' && toCur === 'BOB') {
-                    document.getElementById('v-total').value = (parseFloat(terreno.precio) * (vendaCtx.tc || 1)).toFixed(2);
-                } else {
-                    document.getElementById('v-total').value = (parseFloat(terreno.precio) || 0).toFixed(2);
-                }
-            }
-
-            // Entrada
-            if (vendaCtx.manualEntrada) {
-                const curEnt = parseFloat(document.getElementById('v-entrada').value) || 0;
-                document.getElementById('v-entrada').value = convertAmountCurrency(curEnt, fromCur, toCur, vendaCtx.tc).toFixed(2);
-            } else {
-                document.getElementById('v-entrada').value = "0.00";
-            }
-
-            document.getElementById('lbl-moneda-venda').innerText = toCur;
-
-            vendaCtx.payMoneda = toCur;
-            vendaCtx.programmatic = false;
-
-            refreshVendaMoneyUI();
-        };
-
-        window.onTipoCambioInput = () => {
-            const tId = document.getElementById('v-land-id').value;
-            const terreno = terrenos.find(x => x.$id === tId);
-            if (!terreno) return;
-
-            const sel = document.getElementById('v-pay-currency');
-            const tcEl = document.getElementById('v-tc');
-            const tc = parseFloat(tcEl.value) || 0;
-            if (tc > 0) vendaCtx.tc = tc;
-
-            // Solo aplica cuando el terreno es USD y el pago es BOB
-            if (terreno.moneda !== 'USD' || sel.value !== 'BOB') return;
-
-            // Recalcular automáticamente SOLO si el usuario no cambió manualmente el total
-            if (!vendaCtx.manualTotal) {
-                vendaCtx.programmatic = true;
-                document.getElementById('v-total').value = (parseFloat(terreno.precio) * (vendaCtx.tc || 1)).toFixed(2);
-                vendaCtx.programmatic = false;
-                refreshVendaMoneyUI();
-            } else {
-                // Si cambió manualmente, solo actualiza previews y cuota
-                refreshVendaMoneyUI();
-            }
-        };
 
         function getPermissions() {
             if (!user) return [];
@@ -2215,10 +2117,6 @@
                 terrenos = tRes.documents.map(d => {
                     const parsed = JSON.parse(d.dados);
                     parsed.fotos = normalizeFotos(parsed.fotos);
-
-                    // Garantiza estructura de reserva
-                    if (parsed.reserva === undefined) parsed.reserva = null;
-
                     return { $id: d.$id, ...parsed };
                 });
 
@@ -2304,80 +2202,6 @@
             loadData();
         });
 
-        // ------------------------------
-        // RESERVA: abrir / guardar / liberar
-        // ------------------------------
-        window.openReserva = (id) => {
-            try {
-                const t = terrenos.find(x => x.$id === id);
-                if (!t) { alert('Terreno no encontrado.'); return; }
-
-                document.getElementById('r-land-id').value = id;
-                document.getElementById('r-land-info').innerText = `${t.codigo} - ${t.nome}`;
-
-                const today = new Date().toISOString().split('T')[0];
-                const r = t.reserva || null;
-
-                document.getElementById('r-cliente').value = (r && r.cliente) ? r.cliente : '';
-                document.getElementById('r-ci').value = (r && r.ci) ? r.ci : '';
-                document.getElementById('r-fecha').value = (r && r.fecha) ? r.fecha : today;
-                document.getElementById('r-notas').value = (r && r.notas) ? r.notas : '';
-
-                document.getElementById('modal-reserva').classList.remove('hidden');
-            } catch (err) {
-                console.error('openReserva error', err);
-                alert('Error abriendo reserva: ' + (err && err.message ? err.message : err));
-            }
-        };
-
-        document.getElementById('form-reserva').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            document.getElementById('loader').classList.remove('hidden');
-
-            const id = document.getElementById('r-land-id').value;
-            const t = terrenos.find(x => x.$id === id);
-            if (!t) { document.getElementById('loader').classList.add('hidden'); alert('Terreno no encontrado.'); return; }
-
-            const reserva = {
-                cliente: document.getElementById('r-cliente').value,
-                ci: document.getElementById('r-ci').value,
-                fecha: document.getElementById('r-fecha').value,
-                notas: document.getElementById('r-notas').value
-            };
-
-            t.reserva = reserva;
-            t.estado = 'Reservado';
-
-            t.fotos = normalizeFotos(t.fotos);
-
-            await db.updateDocument(DB_ID, COL_TERRENOS, id, { dados: JSON.stringify(t) });
-
-            closeModal('modal-reserva');
-            loadData();
-        });
-
-        window.liberarReserva = async (id) => {
-            try {
-                const t = terrenos.find(x => x.$id === id);
-                if (!t) { alert('Terreno no encontrado.'); return; }
-                const name = `${t.codigo} - ${t.nome}`;
-                if (!confirm(`¿Liberar la reserva de:\n\n${name}\n\nEsto lo deja como DISPONIBLE.`)) return;
-
-                document.getElementById('loader').classList.remove('hidden');
-
-                t.reserva = null;
-                t.estado = 'Disponible';
-                t.fotos = normalizeFotos(t.fotos);
-
-                await db.updateDocument(DB_ID, COL_TERRENOS, id, { dados: JSON.stringify(t) });
-
-                loadData();
-            } catch (err) {
-                console.error('liberarReserva error', err);
-                alert('Error liberando reserva: ' + (err && err.message ? err.message : err));
-            }
-        };
-
         function renderTerrenos() {
             const b = document.getElementById('lista-terrenos');
             b.innerHTML = '';
@@ -2407,28 +2231,23 @@
                 const imgHtml = `<div class="thumb-container" onclick="verDetalles('${t.$id}', 'land')">${thumbInner}${badge}</div>`;
 
                 let estadoHtml = '';
-                if (t.estado === 'Disponible') {
-                    estadoHtml = `<span class="status-badge status-disponible"><i class="fas fa-check"></i> Disponible</span>`;
-                } else if (t.estado === 'Reservado') {
-                    estadoHtml = `<span class="status-badge status-reservado"><i class="fas fa-bookmark"></i> Reservado</span>`;
-                } else {
-                    estadoHtml = `<span class="status-badge status-vendido"><i class="fas fa-lock"></i> Vendido</span>`;
-                }
+                if (t.estado === 'Disponible') estadoHtml = `<span class="status-badge status-disponible"><i class="fas fa-check"></i> Disponible</span>`;
+                else if (t.estado === 'Reservado') estadoHtml = `<span class="status-badge status-reservado"><i class="fas fa-bookmark"></i> Reservado</span>`;
+                else estadoHtml = `<span class="status-badge status-vendido"><i class="fas fa-lock"></i> Vendido</span>`;
 
                 let acciones = '';
                 if (t.estado === 'Disponible') {
                     acciones = `
-                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openReserva('${t.$id}')"><i class="fas fa-bookmark"></i></button>
+                        <button type="button" class="btn btn-w btn-sm" onclick="event.stopPropagation(); openReserva('${t.$id}')"><i class="fas fa-bookmark"></i></button>
                         <button type="button" class="btn btn-p btn-sm" onclick="event.stopPropagation(); openVenda('${t.$id}')"><i class="fas fa-handshake"></i></button>
                     `;
                 } else if (t.estado === 'Reservado') {
                     acciones = `
-                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openReserva('${t.$id}')" title="Editar reserva"><i class="fas fa-pen"></i></button>
-                        <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); liberarReserva('${t.$id}')" title="Liberar reserva"><i class="fas fa-unlock"></i></button>
-                        <button type="button" class="btn btn-p btn-sm" onclick="event.stopPropagation(); openVenda('${t.$id}')" title="Vender (desde reserva)"><i class="fas fa-handshake"></i></button>
+                        <button type="button" class="btn btn-p btn-sm" onclick="event.stopPropagation(); openVenda('${t.$id}')"><i class="fas fa-handshake"></i></button>
+                        <button type="button" class="btn btn-g btn-sm" onclick="event.stopPropagation(); cancelarReserva('${t.$id}')"><i class="fas fa-unlock"></i></button>
                     `;
                 } else {
-                    acciones = ``;
+                    acciones = `<span class="status-badge status-vendido"><i class="fas fa-lock"></i> Vendido</span>`;
                 }
 
                 b.innerHTML += `<tr>
@@ -2448,73 +2267,134 @@
         }
 
         // ------------------------------
-        // VENTAS
+        // RESERVAS
         // ------------------------------
-        function safeCurrency(code){
-            const c = String(code || '').toUpperCase();
-            if (c === 'USD' || c === 'BOB') return c;
-            return 'BOB';
-        }
+        function openReserva(id) {
+            const t = terrenos.find(x => x.$id === id);
+            if (!t) return;
 
+            document.getElementById('r-land-id').value = id;
+            document.getElementById('r-land-info').innerText = `${t.codigo} - ${t.nome}`;
+            document.getElementById('r-cliente').value = (t.reserva && t.reserva.cliente) ? t.reserva.cliente : '';
+            document.getElementById('r-ci').value = (t.reserva && t.reserva.ci) ? t.reserva.ci : '';
+            document.getElementById('r-vence').value = (t.reserva && t.reserva.vence) ? t.reserva.vence : '';
+            document.getElementById('r-notas').value = (t.reserva && t.reserva.notas) ? t.reserva.notas : '';
+
+            document.getElementById('modal-reserva').classList.remove('hidden');
+        }
+        window.openReserva = openReserva;
+
+        window.cancelarReserva = async (id) => {
+            const t = terrenos.find(x => x.$id === id);
+            if (!t) return;
+            if (!confirm("¿Cancelar la reserva y dejar el terreno como Disponible?")) return;
+
+            document.getElementById('loader').classList.remove('hidden');
+            try {
+                t.estado = 'Disponible';
+                t.reserva = null;
+                t.fotos = normalizeFotos(t.fotos);
+                await db.updateDocument(DB_ID, COL_TERRENOS, id, { dados: JSON.stringify(t) });
+                loadData();
+            } finally {
+                document.getElementById('loader').classList.add('hidden');
+            }
+        };
+
+        document.getElementById('form-reserva').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('r-land-id').value;
+            const t = terrenos.find(x => x.$id === id);
+            if (!t) return;
+
+            document.getElementById('loader').classList.remove('hidden');
+            try {
+                t.estado = 'Reservado';
+                t.reserva = {
+                    cliente: document.getElementById('r-cliente').value,
+                    ci: document.getElementById('r-ci').value,
+                    fecha: new Date().toISOString().split('T')[0],
+                    vence: document.getElementById('r-vence').value || null,
+                    notas: document.getElementById('r-notas').value || ""
+                };
+                t.fotos = normalizeFotos(t.fotos);
+                await db.updateDocument(DB_ID, COL_TERRENOS, id, { dados: JSON.stringify(t) });
+
+                closeModal('modal-reserva');
+                loadData();
+            } finally {
+                document.getElementById('loader').classList.add('hidden');
+            }
+        });
+
+        // ------------------------------
+        // VENTAS: Moneda + TC bidireccional (BOB ⇄ USD)
+        // ------------------------------
         window._vendaLandMoneda = 'BOB';
-        window._vendaBaseTotal = 0;
-        window._vendaBaseEntrada = 0;
+        window._vendaBaseTotal = 0;     // SIEMPRE en moneda del terreno
+        window._vendaBaseEntrada = 0;   // SIEMPRE en moneda del terreno
         window._vendaLastPayCurrency = 'BOB';
+
+        function convertBetweenCurrencies(amount, fromCur, toCur, tcBsPerUsd) {
+            const v = parseFloat(amount);
+            if (!isFinite(v)) return 0;
+            const tc = parseFloat(tcBsPerUsd);
+            const t = (isFinite(tc) && tc > 0) ? tc : 6.96;
+
+            if (fromCur === toCur) return v;
+
+            // tc = Bs por 1 USD
+            if (fromCur === 'USD' && toCur === 'BOB') return v * t;
+            if (fromCur === 'BOB' && toCur === 'USD') return v / t;
+
+            return v;
+        }
 
         window.onVendaCurrencyChange = (forceRecalc = false) => {
             try {
                 const sel = document.getElementById('v-pay-currency');
                 const divTc = document.getElementById('div-v-tc');
                 const inputTc = document.getElementById('v-tc');
+
                 const landMoneda = safeCurrency(window._vendaLandMoneda);
-                const payMoneda = safeCurrency(sel ? sel.value : landMoneda);
+                const newPayMoneda = safeCurrency(sel ? sel.value : landMoneda);
 
                 let tc = parseFloat(inputTc ? inputTc.value : '6.96');
                 if (!isFinite(tc) || tc <= 0) tc = 6.96;
 
-                const showTc = (landMoneda === 'USD' && payMoneda === 'BOB');
+                const showTc = (landMoneda !== newPayMoneda) && (
+                    (landMoneda === 'USD' && newPayMoneda === 'BOB') ||
+                    (landMoneda === 'BOB' && newPayMoneda === 'USD')
+                );
+
                 if (divTc) divTc.classList.toggle('hidden', !showTc);
 
                 const totalEl = document.getElementById('v-total');
                 const entEl = document.getElementById('v-entrada');
-
                 if (!totalEl || !entEl) return;
 
-                // Atualiza base quando alterna moeda
-                if (landMoneda === 'USD') {
-                    if (payMoneda === 'USD') {
-                        if (window._vendaLastPayCurrency === 'BOB') {
-                            const curT = parseFloat(totalEl.value) || 0;
-                            const curE = parseFloat(entEl.value) || 0;
-                            window._vendaBaseTotal = tc > 0 ? (curT / tc) : curT;
-                            window._vendaBaseEntrada = tc > 0 ? (curE / tc) : curE;
-                        }
-                        totalEl.value = (window._vendaBaseTotal || 0).toFixed(2);
-                        entEl.value = (window._vendaBaseEntrada || 0).toFixed(2);
-                    } else {
-                        if (window._vendaLastPayCurrency === 'USD') {
-                            window._vendaBaseTotal = parseFloat(totalEl.value) || 0;
-                            window._vendaBaseEntrada = parseFloat(entEl.value) || 0;
-                        }
-                        if (forceRecalc || window._vendaLastPayCurrency !== 'BOB') {
-                            totalEl.value = ((window._vendaBaseTotal || 0) * tc).toFixed(2);
-                            entEl.value = ((window._vendaBaseEntrada || 0) * tc).toFixed(2);
-                        }
-                    }
-                } else {
-                    // Terreno em BOB: venda sempre em BOB
-                    if (sel) sel.value = 'BOB';
-                    if (divTc) divTc.classList.add('hidden');
+                // Si NO es recalculo forzado (TC), y el usuario cambió moneda, primero guardamos base en moneda del terreno
+                if (!forceRecalc && window._vendaLastPayCurrency && window._vendaLastPayCurrency !== newPayMoneda) {
+                    const curT = parseFloat(totalEl.value) || 0;
+                    const curE = parseFloat(entEl.value) || 0;
+
+                    // Convertir lo que estaba en moneda anterior (pay) a moneda del terreno (base)
+                    window._vendaBaseTotal = convertBetweenCurrencies(curT, window._vendaLastPayCurrency, landMoneda, tc);
+                    window._vendaBaseEntrada = convertBetweenCurrencies(curE, window._vendaLastPayCurrency, landMoneda, tc);
                 }
 
-                window._vendaLastPayCurrency = payMoneda;
+                // Ahora mostramos en la moneda seleccionada desde la base
+                totalEl.value = (convertBetweenCurrencies(window._vendaBaseTotal || 0, landMoneda, newPayMoneda, tc)).toFixed(2);
+                entEl.value = (convertBetweenCurrencies(window._vendaBaseEntrada || 0, landMoneda, newPayMoneda, tc)).toFixed(2);
+
+                window._vendaLastPayCurrency = newPayMoneda;
 
                 const lbl = document.getElementById('lbl-moneda-venda');
-                if (lbl) lbl.innerText = payMoneda;
+                if (lbl) lbl.innerText = newPayMoneda;
 
                 window.calcLive();
-                window.showPreview(document.getElementById('v-total'), 'preview-v-total', payMoneda);
-                window.showPreview(document.getElementById('v-entrada'), 'preview-v-entrada', payMoneda);
+                window.showPreview(document.getElementById('v-total'), 'preview-v-total', newPayMoneda);
+                window.showPreview(document.getElementById('v-entrada'), 'preview-v-entrada', newPayMoneda);
             } catch (err) {
                 console.error('onVendaCurrencyChange error', err);
             }
@@ -2524,7 +2404,6 @@
             try {
                 const t = terrenos.find(x => x.$id === id);
                 if (!t) { alert('Terreno no encontrado.'); return; }
-                if (t.estado === 'Vendido') { alert('Este terreno ya está VENDIDO.'); return; }
 
                 const landMoneda = safeCurrency(t.moneda || 'BOB');
 
@@ -2533,29 +2412,20 @@
                 window._vendaBaseEntrada = 0;
                 window._vendaLastPayCurrency = landMoneda;
 
-                // Reset campos básicos
-                document.getElementById('v-cliente').value = '';
-                document.getElementById('v-ci').value = '';
-                document.getElementById('v-ncuotas').value = 12;
-
-                // Si está reservado: prellenar cliente/ci y mostrar aviso
-                const warn = document.getElementById('v-reserva-warning');
-                const warnTxt = document.getElementById('v-reserva-warning-txt');
-                if (t.estado === 'Reservado' && t.reserva && t.reserva.cliente) {
-                    document.getElementById('v-cliente').value = t.reserva.cliente || '';
-                    document.getElementById('v-ci').value = t.reserva.ci || '';
-                    if (warn) warn.classList.remove('hidden');
-                    if (warnTxt) {
-                        const f = t.reserva.fecha ? ` (${t.reserva.fecha})` : '';
-                        warnTxt.innerText = ` Reservado para: ${t.reserva.cliente}${f}.`;
-                    }
-                } else {
-                    if (warn) warn.classList.add('hidden');
-                    if (warnTxt) warnTxt.innerText = '';
-                }
-
                 document.getElementById('v-land-id').value = id;
                 document.getElementById('v-land-info').innerText = `${t.codigo} - ${t.nome}`;
+
+                const warnBox = document.getElementById('v-reserva-warning');
+                const warnTxt = document.getElementById('v-reserva-warning-text');
+                if (t.estado === 'Reservado' && t.reserva) {
+                    warnBox.classList.remove('hidden');
+                    const vence = t.reserva.vence ? ` • Vence: ${t.reserva.vence}` : '';
+                    warnTxt.innerText = `Cliente: ${t.reserva.cliente || '-'}${vence}`;
+                } else {
+                    warnBox.classList.add('hidden');
+                    warnTxt.innerText = '';
+                }
+
                 const regEl = document.getElementById('v-precio-registrado');
                 if (regEl) {
                     const symReg = (t.moneda === 'USD') ? '$us' : 'Bs';
@@ -2565,18 +2435,12 @@
 
                 const sel = document.getElementById('v-pay-currency');
                 if (sel) {
-                    if (landMoneda === 'USD') {
-                        sel.disabled = false;
-                        sel.innerHTML = `
-                            <option value="USD">Dólar ($us)</option>
-                            <option value="BOB">Bolivianos (Bs)</option>
-                        `;
-                        sel.value = 'USD';
-                    } else {
-                        sel.disabled = true;
-                        sel.innerHTML = `<option value="BOB">Bolivianos (Bs)</option>`;
-                        sel.value = 'BOB';
-                    }
+                    sel.disabled = false;
+                    sel.innerHTML = `
+                        <option value="BOB">Bolivianos (Bs)</option>
+                        <option value="USD">Dólar ($us)</option>
+                    `;
+                    sel.value = landMoneda;
                 }
 
                 document.getElementById('v-total').value = (window._vendaBaseTotal || 0).toFixed(2);
@@ -2595,25 +2459,23 @@
             }
         }
         window.openVenda = openVenda;
-
-        document.getElementById('form-venda').addEventListener('submit', async (e) => {
+        
+                document.getElementById('form-venda').addEventListener('submit', async (e) => {
             e.preventDefault();
             document.getElementById('loader').classList.remove('hidden');
 
             const tId = document.getElementById('v-land-id').value;
             const terreno = terrenos.find(x => x.$id === tId);
 
-            // Moneda de pago para esta venta (si el terreno está en USD, puedes vender en USD o en Bs)
-            let payMoneda = terreno ? (terreno.moneda || 'BOB') : 'BOB';
+            const landMoneda = terreno ? safeCurrency(terreno.moneda || 'BOB') : 'BOB';
+            const sel = document.getElementById('v-pay-currency');
+            const payMoneda = sel ? safeCurrency(sel.value || landMoneda) : landMoneda;
+
             let tcVenta = null;
-            if (terreno && terreno.moneda === 'USD') {
-                const sel = document.getElementById('v-pay-currency');
-                payMoneda = sel ? (sel.value || 'USD') : 'USD';
-                if (payMoneda === 'BOB') {
-                    const tcEl = document.getElementById('v-tc');
-                    const tc = tcEl ? parseFloat(tcEl.value) : NaN;
-                    tcVenta = (!isNaN(tc) && tc > 0) ? tc : null;
-                }
+            if (landMoneda !== payMoneda) {
+                const tcEl = document.getElementById('v-tc');
+                const tc = tcEl ? parseFloat(tcEl.value) : NaN;
+                tcVenta = (!isNaN(tc) && tc > 0) ? tc : null;
             }
 
             const uploaded = await uploadFiles(vendaFilePool);
@@ -2638,11 +2500,17 @@
                 landId: tId,
                 landNome: terreno.nome,
                 moneda: payMoneda,
+
+                land_moneda: landMoneda,
                 moneda_original: terreno ? (terreno.moneda || null) : null,
                 precio_original: terreno ? (terreno.precio || null) : null,
+
                 tc_venta: tcVenta,
+
                 total: total,
-                total_ref_usd: (terreno && terreno.moneda === 'USD' && payMoneda === 'BOB' && tcVenta) ? (total / tcVenta) : null,
+                total_ref_usd: (landMoneda === 'USD' && payMoneda === 'BOB' && tcVenta) ? (total / tcVenta) : null,
+                total_ref_bob: (landMoneda === 'BOB' && payMoneda === 'USD' && tcVenta) ? (total * tcVenta) : null,
+
                 entrada: ent,
                 fecha_entrada: today,
                 cuotas: cuotas,
@@ -2653,7 +2521,7 @@
             await db.createDocument(DB_ID, COL_VENDAS, ID.unique(), { dados: JSON.stringify(venda) }, getPermissions());
 
             terreno.estado = 'Vendido';
-            terreno.reserva = null; // al vender, se elimina reserva
+            terreno.reserva = null;
             terreno.fotos = normalizeFotos(terreno.fotos);
             await db.updateDocument(DB_ID, COL_TERRENOS, tId, { dados: JSON.stringify(terreno) });
 
@@ -2692,7 +2560,7 @@
                     if (!c.pago) rem += (parseFloat(c.valor) || 0);
                 });
             } catch (_) {}
-            if (String(v.moneda || '').toUpperCase() === 'USD') rem *= 6.96;
+            if (String(v.moneda || '').toUpperCase() === 'USD') rem *= getTcRefBsPerUsd(v);
             return rem;
         }
 
@@ -2705,7 +2573,7 @@
                     if (dd !== null && dd <= 0) rem += (parseFloat(c.valor) || 0);
                 });
             } catch (_) {}
-            if (String(v.moneda || '').toUpperCase() === 'USD') rem *= 6.96;
+            if (String(v.moneda || '').toUpperCase() === 'USD') rem *= getTcRefBsPerUsd(v);
             return rem;
         }
 
@@ -2921,7 +2789,13 @@
             document.getElementById('p-valor-display').innerText = v.moneda + ' ' + new Intl.NumberFormat('es-BO').format(c.valor);
             document.getElementById('p-valor-real').value = c.valor.toFixed(2);
             document.getElementById('p-data').value = new Date().toISOString().split('T')[0];
-            document.getElementById('div-tc').classList.toggle('hidden', v.moneda !== 'USD');
+
+            const isUsd = (v.moneda === 'USD');
+            document.getElementById('div-tc').classList.toggle('hidden', !isUsd);
+            if (isUsd) {
+                document.getElementById('p-tc').value = (getTcRefBsPerUsd(v)).toFixed(2);
+            }
+
             window.showPreview(document.getElementById('p-valor-real'), 'preview-p-valor', v.moneda);
             document.getElementById('modal-pagar').classList.remove('hidden');
         };
@@ -3099,17 +2973,11 @@
 
             if (type === 'land') {
                 let reservaHtml = '';
-                if (d.estado === 'Reservado' && d.reserva && d.reserva.cliente) {
-                    const r = d.reserva;
-                    reservaHtml = `
-                        <div style="margin-top:10px; background:rgba(243,156,18,0.14); border:1px solid rgba(243,156,18,0.22); padding:12px; border-radius:14px;">
-                            <div style="font-weight:950; color:#92400e;"><i class="fas fa-bookmark"></i> Reserva</div>
-                            <div style="margin-top:6px; color:#0f172a; font-weight:900;">Cliente: <span style="font-weight:950;">${r.cliente || ''}</span></div>
-                            <div style="color:#334155; font-weight:900;">CI/Doc: ${r.ci || ''}</div>
-                            <div style="color:#334155; font-weight:900;">Fecha: ${r.fecha || ''}</div>
-                            ${r.notas ? `<div style="color:#334155; margin-top:6px;">${r.notas}</div>` : ``}
-                        </div>
-                    `;
+                if (d.estado === 'Reservado' && d.reserva) {
+                    const vence = d.reserva.vence ? ` • Vence: ${d.reserva.vence}` : '';
+                    reservaHtml = `<p style="font-weight:900; color:#92400e; margin-top:6px;">
+                        <strong>Reserva:</strong> ${d.reserva.cliente || '-'}${vence}
+                    </p>`;
                 }
 
                 c.innerHTML = `<h2 style="font-weight:950; color:#0f172a; margin-bottom:8px;">${d.nome}</h2>
@@ -3117,7 +2985,7 @@
                    <p style="font-weight:900; color:#334155;"><strong>Superficie:</strong> ${new Intl.NumberFormat('es-BO').format(d.area)} m²</p>
                    <p style="font-weight:900; color:#334155;"><strong>Estado:</strong> ${d.estado}</p>
                    ${reservaHtml}
-                   <p style="color:#334155; margin-top:10px;">${d.notas || ''}</p>
+                   <p style="color:#334155; margin-top:6px;">${d.notas || ''}</p>
                    <hr style="margin:12px 0; border:0; border-top:1px solid rgba(15,23,42,0.08);">${mediaHtml}`;
             } else {
                 const notasHtml = (d.notas && String(d.notas).trim())
@@ -3179,9 +3047,17 @@
         };
 
         function updateDashboard() {
-            document.getElementById('kpi-total').innerText = terrenos.length;
-            document.getElementById('kpi-disp').innerText = terrenos.filter(t => t.estado === 'Disponible').length;
-            document.getElementById('kpi-vendidos').innerText = terrenos.filter(t => t.estado === 'Vendido').length;
+            const total = terrenos.length;
+            const disp = terrenos.filter(t => t.estado === 'Disponible').length;
+            const reserv = terrenos.filter(t => t.estado === 'Reservado').length;
+            const vend = terrenos.filter(t => t.estado === 'Vendido').length;
+
+            document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-disp').innerText = disp;
+            document.getElementById('kpi-vendidos').innerText = vend;
+
+            document.getElementById('kpi-reservas').innerText = reserv;
+            document.getElementById('kpi-reservados-mini').innerText = reserv;
 
             const s = document.getElementById('filter-date-start').value,
                   e = document.getElementById('filter-date-end').value;
@@ -3195,7 +3071,7 @@
                 let dEnt = v.fecha_entrada ? new Date(v.fecha_entrada) : new Date(v.data);
                 if (dEnt >= start && dEnt <= end) {
                     let pg = v.entrada;
-                    if (v.moneda === 'USD') pg *= 6.96;
+                    if (v.moneda === 'USD') pg *= getTcRefBsPerUsd(v);
                     rec += pg;
                 }
                 v.cuotas.forEach(c => {
@@ -3203,7 +3079,7 @@
                         let dC = new Date(c.data_pago);
                         if (dC >= start && dC <= end) {
                             let val = c.valor_pago || c.valor;
-                            if (v.moneda === 'USD') val *= (c.tc || 6.96);
+                            if (v.moneda === 'USD') val *= (c.tc || getTcRefBsPerUsd(v));
                             rec += val;
                         }
                     }
@@ -3215,17 +3091,12 @@
 
             const ctx1 = document.getElementById('chart-fin').getContext('2d');
             if (window.ch1) window.ch1.destroy();
-
-            const disp = terrenos.filter(t => t.estado === 'Disponible').length;
-            const resv = terrenos.filter(t => t.estado === 'Reservado').length;
-            const vend = terrenos.filter(t => t.estado === 'Vendido').length;
-
             window.ch1 = new Chart(ctx1, {
                 type: 'doughnut',
                 data: {
                     labels: ['Disponible', 'Reservado', 'Vendido'],
                     datasets: [{
-                        data: [disp, resv, vend],
+                        data: [disp, reserv, vend],
                         backgroundColor: ['#27ae60', '#f39c12', '#7f8c8d']
                     }]
                 },
