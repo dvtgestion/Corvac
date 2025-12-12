@@ -96,6 +96,42 @@
             backdrop-filter: blur(6px);
         }
 
+        /* --- Pull To Refresh (iOS) --- */
+        #ptr-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 0px;
+            background: rgba(255,255,255,0.78);
+            border-bottom: 1px solid rgba(15,23,42,0.08);
+            z-index: 2600;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 10px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            transition: height 0.12s ease;
+        }
+
+        #ptr-indicator .ptr-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(15,23,42,0.04);
+            border: 1px solid rgba(15,23,42,0.08);
+            color: #0f172a;
+            font-weight: 900;
+            box-shadow: 0 10px 22px rgba(0,0,0,0.06);
+        }
+
+        #ptr-indicator .ptr-box i {
+            color: var(--accent);
+        }
+
         /* --- Login --- */
         #login-screen {
             position: fixed;
@@ -223,13 +259,11 @@
             border: 1px solid #c3e6cb;
         }
 
-        /* KPI helpers (FIX MOBILE overflow) */
         .kpi-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
         .kpi-card { flex:1 1 220px; min-width: 220px; text-align:center; }
 
         .kpi-title { color:#64748b; font-weight:900; }
 
-        /* DEFAULT KPI value (puede cortar con ellipsis si es necesario) */
         .kpi-value {
             margin-top: 8px;
             color:#0f172a;
@@ -244,13 +278,12 @@
         #kpi-disp.kpi-value { color: var(--success); }
         #kpi-vendidos.kpi-value { color: #64748b; }
 
-        /* === FIX: KPI RECAUDADO siempre COMPLETO (sin ...) === */
         #kpi-money.kpi-value {
             overflow: visible !important;
             text-overflow: clip !important;
-            white-space: normal !important;      /* permite salto de línea */
-            word-break: break-word !important;   /* rompe si es largo */
-            overflow-wrap: anywhere !important;  /* evita salir del card */
+            white-space: normal !important;
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
             line-height: 1.15;
         }
 
@@ -366,10 +399,12 @@
 
         #page-title { font-weight: 950; letter-spacing: 0.2px; }
 
+        /* IMPORTANTE: scroll interno com momentum no iOS */
         #content {
             flex: 1;
             padding: 18px;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             min-width: 0;
         }
 
@@ -439,6 +474,71 @@
             color: #64748b;
             border: 1px solid rgba(100,116,139,0.35);
         }
+
+        /* Alertas de cobranzas (top) */
+        .alerts-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .alert-bar {
+            border-radius: 16px;
+            padding: 12px 12px;
+            border: 1px solid rgba(15,23,42,0.10);
+            box-shadow: 0 10px 22px rgba(0,0,0,0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .alert-bar .alert-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-weight: 950;
+            color: #0f172a;
+            flex-wrap: wrap;
+        }
+
+        .alert-bar .alert-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .alert-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            font-weight: 900;
+            font-size: 0.86rem;
+            border: 1px solid rgba(15,23,42,0.12);
+            background: rgba(255,255,255,0.70);
+            color: #0f172a;
+            cursor: pointer;
+            transition: 0.15s ease;
+        }
+
+        .alert-pill:hover { transform: translateY(-1px); }
+
+        .alert-red {
+            background: rgba(192,57,43,0.12);
+            border-color: rgba(192,57,43,0.22);
+        }
+
+        .alert-yellow {
+            background: rgba(243,156,18,0.18);
+            border-color: rgba(243,156,18,0.28);
+        }
+
+        /* Row colors for cobranzas table */
+        .row-overdue { background: rgba(192,57,43,0.10) !important; }
+        .row-near { background: rgba(243,156,18,0.14) !important; }
 
         .gallery {
             display: flex;
@@ -716,13 +816,11 @@
 
             .kpi-card { flex: 1 1 48%; min-width: 160px; }
 
-            /* Mantém geral, mas Recaudado vai quebrar linha (já está fixo em #kpi-money) */
             .kpi-value {
                 font-size: clamp(1.18rem, 7vw, 2.05rem);
                 white-space: nowrap;
             }
 
-            /* Opcional: deixa Recaudado um pouco menor no mobile para caber melhor */
             #kpi-money.kpi-value {
                 font-size: clamp(1.05rem, 6.2vw, 1.7rem);
             }
@@ -742,6 +840,14 @@
     </style>
 </head>
 <body>
+
+    <!-- Pull-to-refresh indicator -->
+    <div id="ptr-indicator" aria-hidden="true">
+        <div class="ptr-box">
+            <i id="ptr-icon" class="fas fa-arrow-down"></i>
+            <span id="ptr-text">Desliza hacia abajo para actualizar</span>
+        </div>
+    </div>
 
     <div id="loader" class="hidden">
         <i class="fas fa-spinner fa-spin fa-3x"></i>
@@ -950,6 +1056,9 @@
                         </div>
 
                         <div id="tab-vendas-resumo">
+                            <!-- ALERTAS TOP -->
+                            <div id="ventas-alerts" class="alerts-wrap hidden"></div>
+
                             <input type="text" id="search-venda" placeholder="Buscar cliente..."
                                    style="width:100%; padding:11px 12px; margin-bottom:12px; border:1px solid rgba(15,23,42,0.14); border-radius:14px;"
                                    onkeyup="renderVendas()">
@@ -1198,6 +1307,9 @@
         let editPoolObjectUrls = new Map();
         let editPoolSetupDone = false;
 
+        /* Config: alerta de "perto do vencimento" */
+        const ALERT_DAYS = 3; /* você pode trocar para 5 ou 7 se quiser */
+
         function fileKey(f) {
             try { return `${f.name || ''}|${f.size || 0}|${f.lastModified || 0}`; }
             catch (_) { return String(Math.random()); }
@@ -1243,7 +1355,117 @@
             ov.classList.add('hidden');
         };
 
-        function renderTerrenoFilePool() {
+        /* ------------------------------
+           Pull-to-refresh custom (iOS)
+        ------------------------------ */
+        let ptrStartY = 0;
+        let ptrPulling = false;
+        let ptrTriggered = false;
+        let ptrLocked = false;
+
+        function setPtrUI(heightPx, state) {
+            const ind = document.getElementById('ptr-indicator');
+            const txt = document.getElementById('ptr-text');
+            const icon = document.getElementById('ptr-icon');
+            if (!ind || !txt || !icon) return;
+
+            ind.style.height = `${Math.max(0, heightPx)}px`;
+
+            if (state === 'pull') {
+                txt.innerText = 'Desliza hacia abajo para actualizar';
+                icon.className = 'fas fa-arrow-down';
+            } else if (state === 'release') {
+                txt.innerText = 'Suelta para actualizar';
+                icon.className = 'fas fa-arrow-up';
+            } else if (state === 'loading') {
+                txt.innerText = 'Actualizando...';
+                icon.className = 'fas fa-spinner fa-spin';
+            } else {
+                txt.innerText = 'Desliza hacia abajo para actualizar';
+                icon.className = 'fas fa-arrow-down';
+            }
+        }
+
+        async function triggerPtrRefresh() {
+            if (ptrLocked) return;
+            ptrLocked = true;
+            setPtrUI(70, 'loading');
+
+            try {
+                await loadData();
+            } finally {
+                setTimeout(() => {
+                    setPtrUI(0, 'pull');
+                    ptrLocked = false;
+                }, 250);
+            }
+        }
+
+        function setupPullToRefresh() {
+            const content = document.getElementById('content');
+            if (!content) return;
+
+            const THRESHOLD = 85;
+            const MAX_PULL = 140;
+
+            content.addEventListener('touchstart', (e) => {
+                if (!e.touches || e.touches.length !== 1) return;
+                if (ptrLocked) return;
+                if (content.scrollTop > 0) return;
+
+                ptrStartY = e.touches[0].clientY;
+                ptrPulling = true;
+                ptrTriggered = false;
+            }, { passive: true });
+
+            content.addEventListener('touchmove', (e) => {
+                if (!ptrPulling) return;
+                if (ptrLocked) return;
+                if (!e.touches || e.touches.length !== 1) return;
+
+                const currentY = e.touches[0].clientY;
+                let delta = currentY - ptrStartY;
+
+                if (delta <= 0) {
+                    setPtrUI(0, 'pull');
+                    return;
+                }
+
+                if (content.scrollTop > 0) {
+                    ptrPulling = false;
+                    setPtrUI(0, 'pull');
+                    return;
+                }
+
+                e.preventDefault();
+
+                delta = Math.min(delta, MAX_PULL);
+                const height = Math.min(70, (delta / MAX_PULL) * 70);
+
+                if (delta >= THRESHOLD) {
+                    setPtrUI(height, 'release');
+                    ptrTriggered = true;
+                } else {
+                    setPtrUI(height, 'pull');
+                    ptrTriggered = false;
+                }
+            }, { passive: false });
+
+            content.addEventListener('touchend', () => {
+                if (!ptrPulling) return;
+                ptrPulling = false;
+
+                if (ptrTriggered) {
+                    triggerPtrRefresh();
+                } else {
+                    setPtrUI(0, 'pull');
+                }
+            }, { passive: true });
+        }
+
+        /* (continua na PARTE 2/2) */
+        
+                function renderTerrenoFilePool() {
             const box = document.getElementById('t-files-pool');
             const counter = document.getElementById('t-files-count');
             if (!box || !counter) return;
@@ -1332,9 +1554,7 @@
             renderTerrenoFilePool();
         }
 
-        /* (continúa en PARTE 2/2) */
-        
-                function renderVendaFilePool() {
+        function renderVendaFilePool() {
             const box = document.getElementById('v-files-pool');
             const counter = document.getElementById('v-files-count');
             if (!box || !counter) return;
@@ -1520,9 +1740,6 @@
             renderEditFilePool();
         }
 
-        // ------------------------------
-        // HELPERS (AJUSTE DEFINITIVO)
-        // ------------------------------
         function extractFileIdFromUrl(u) {
             const s = String(u || '');
             const m = s.match(/\/files\/([^\/]+)\//i);
@@ -1660,6 +1877,7 @@
                 setupTerrenoPoolInput();
                 setupVendaPoolInput();
                 setupEditPoolInput();
+                setupPullToRefresh(); /* <-- pull-to-refresh */
                 loadData();
             } catch (e) {
                 console.log("Login necesario");
@@ -1898,13 +2116,143 @@
             loadData();
         });
 
+        /* Helpers para alertas */
+        function parseDateYMD(ymd) {
+            const s = String(ymd || '');
+            const parts = s.split('-');
+            if (parts.length !== 3) return null;
+            const y = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10) - 1;
+            const d = parseInt(parts[2], 10);
+            const dt = new Date(y, m, d);
+            if (isNaN(dt.getTime())) return null;
+            dt.setHours(0,0,0,0);
+            return dt;
+        }
+
+        function daysDiffFromToday(ymd) {
+            const dt = parseDateYMD(ymd);
+            if (!dt) return null;
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const diff = dt.getTime() - today.getTime();
+            return Math.floor(diff / 86400000);
+        }
+
+        function buildCobranzasListFiltered() {
+            const f = document.getElementById('search-venda').value.toLowerCase();
+
+            let list = [];
+            vendas.forEach(v => {
+                if (!v.cliente.toLowerCase().includes(f)) return;
+
+                const pendente = v.cuotas.find(c => !c.pago);
+                if (!pendente) return;
+
+                const dd = daysDiffFromToday(pendente.venc);
+                const isOverdue = (dd !== null && dd < 0);
+                const isNear = (dd !== null && dd >= 0 && dd <= ALERT_DAYS);
+
+                list.push({
+                    v,
+                    pendente,
+                    days: dd,
+                    overdue: isOverdue,
+                    near: isNear
+                });
+            });
+
+            list.sort((a, b) => {
+                const aRank = a.overdue ? 0 : (a.near ? 1 : 2);
+                const bRank = b.overdue ? 0 : (b.near ? 1 : 2);
+                if (aRank !== bRank) return aRank - bRank;
+
+                const ad = parseDateYMD(a.pendente.venc);
+                const bd = parseDateYMD(b.pendente.venc);
+                if (ad && bd) return ad.getTime() - bd.getTime();
+                return 0;
+            });
+
+            return list;
+        }
+
+        function renderVentasAlerts(cobranzasList) {
+            const wrap = document.getElementById('ventas-alerts');
+            if (!wrap) return;
+
+            const overdueList = cobranzasList.filter(x => x.overdue);
+            const nearList = cobranzasList.filter(x => x.near);
+
+            if (!overdueList.length && !nearList.length) {
+                wrap.classList.add('hidden');
+                wrap.innerHTML = '';
+                return;
+            }
+
+            wrap.classList.remove('hidden');
+            wrap.innerHTML = '';
+
+            if (overdueList.length) {
+                let itemsHtml = '';
+                overdueList.slice(0, 12).forEach(x => {
+                    const monto = `${x.v.moneda} ${new Intl.NumberFormat('es-BO').format(x.pendente.valor)}`;
+                    itemsHtml += `
+                        <div class="alert-pill" onclick="openPagar('${x.v.$id}', ${x.pendente.n})" title="Cobrar ahora">
+                            <i class="fas fa-triangle-exclamation" style="color:var(--danger)"></i>
+                            <span>${x.v.cliente} • ${x.v.landNome} • ${x.pendente.venc} • ${monto}</span>
+                            <span style="opacity:0.75;">(vencida)</span>
+                        </div>
+                    `;
+                });
+
+                wrap.innerHTML += `
+                    <div class="alert-bar alert-red">
+                        <div class="alert-title">
+                            <span><i class="fas fa-circle-exclamation" style="color:var(--danger)"></i> Cobranza vencida: <strong>${overdueList.length}</strong></span>
+                            <span style="font-weight:900; color:#334155;">(aparecen arriba en la tabla)</span>
+                        </div>
+                        <div class="alert-items">${itemsHtml}</div>
+                        ${overdueList.length > 12 ? `<div style="font-weight:900; color:#334155;">Mostrando 12 de ${overdueList.length}…</div>` : ``}
+                    </div>
+                `;
+            }
+
+            if (nearList.length) {
+                let itemsHtml = '';
+                nearList.slice(0, 12).forEach(x => {
+                    const monto = `${x.v.moneda} ${new Intl.NumberFormat('es-BO').format(x.pendente.valor)}`;
+                    const ddTxt = (x.days === 0) ? 'hoy' : `${x.days} día(s)`;
+                    itemsHtml += `
+                        <div class="alert-pill" onclick="openPagar('${x.v.$id}', ${x.pendente.n})" title="Cobrar / revisar">
+                            <i class="fas fa-bell" style="color:var(--warning)"></i>
+                            <span>${x.v.cliente} • ${x.v.landNome} • ${x.pendente.venc} • ${monto}</span>
+                            <span style="opacity:0.75;">(${ddTxt})</span>
+                        </div>
+                    `;
+                });
+
+                wrap.innerHTML += `
+                    <div class="alert-bar alert-yellow">
+                        <div class="alert-title">
+                            <span><i class="fas fa-bell" style="color:var(--warning)"></i> Próximas a vencer (≤ ${ALERT_DAYS} días): <strong>${nearList.length}</strong></span>
+                            <span style="font-weight:900; color:#334155;">(aparecen arriba en la tabla)</span>
+                        </div>
+                        <div class="alert-items">${itemsHtml}</div>
+                        ${nearList.length > 12 ? `<div style="font-weight:900; color:#334155;">Mostrando 12 de ${nearList.length}…</div>` : ``}
+                    </div>
+                `;
+            }
+        }
+
         function renderVendas() {
             const l1 = document.getElementById('lista-cobrancas');
             const l2 = document.getElementById('lista-historico');
             const l3 = document.getElementById('lista-completos');
             l1.innerHTML = ''; l2.innerHTML = ''; l3.innerHTML = '';
+
             const f = document.getElementById('search-venda').value.toLowerCase();
 
+            // Histórico e completados continuam como antes (baseado no filtro)
             vendas.forEach(v => {
                 if (!v.cliente.toLowerCase().includes(f)) return;
 
@@ -1928,17 +2276,32 @@
                         <td><span class="status-badge status-disponible"><i class="fas fa-check"></i> PAGADO</span></td>
                         <td><button class="btn btn-g btn-sm" onclick="openEdit('${v.$id}', 'sale')">Ver</button></td>
                     </tr>`;
-                } else {
-                    let cor = new Date(pendente.venc) < new Date() ? 'red' : '#0f172a';
-                    l1.innerHTML += `<tr>
-                        <td><strong>${v.cliente}</strong></td>
-                        <td>${v.landNome}</td>
-                        <td>${pendente.n}/${v.cuotas.length}</td>
-                        <td style="color:${cor};font-weight:950">${pendente.venc}</td>
-                        <td>${v.moneda} ${new Intl.NumberFormat('es-BO').format(pendente.valor)}</td>
-                        <td><button class="btn btn-s btn-sm" onclick="openPagar('${v.$id}', ${pendente.n})">Cobrar</button></td>
-                    </tr>`;
                 }
+            });
+
+            // Cobranzas: agora ordenado + cores + topo + alertas
+            const cobranzasList = buildCobranzasListFiltered();
+            renderVentasAlerts(cobranzasList);
+
+            cobranzasList.forEach(item => {
+                const v = item.v;
+                const pendente = item.pendente;
+
+                const cor = item.overdue ? 'red' : '#0f172a';
+                const rowClass = item.overdue ? 'row-overdue' : (item.near ? 'row-near' : '');
+
+                let labelExtra = '';
+                if (item.overdue) labelExtra = `<span class="status-badge" style="background:rgba(192,57,43,0.12); border:1px solid rgba(192,57,43,0.22); color:#7f1d1d;"><i class="fas fa-circle-exclamation"></i> VENCIDA</span>`;
+                else if (item.near) labelExtra = `<span class="status-badge" style="background:rgba(243,156,18,0.18); border:1px solid rgba(243,156,18,0.28); color:#92400e;"><i class="fas fa-bell"></i> PRONTO</span>`;
+
+                l1.innerHTML += `<tr class="${rowClass}">
+                    <td><strong>${v.cliente}</strong></td>
+                    <td>${v.landNome}</td>
+                    <td>${pendente.n}/${v.cuotas.length} ${labelExtra}</td>
+                    <td style="color:${cor};font-weight:950">${pendente.venc}</td>
+                    <td>${v.moneda} ${new Intl.NumberFormat('es-BO').format(pendente.valor)}</td>
+                    <td><button class="btn btn-s btn-sm" onclick="openPagar('${v.$id}', ${pendente.n})">Cobrar</button></td>
+                </tr>`;
             });
         }
 
@@ -2215,7 +2578,6 @@
                 });
             });
 
-            /* SIEMPRE número completo (sin abreviar) */
             document.getElementById('kpi-money').innerText =
                 "Bs " + rec.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
