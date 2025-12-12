@@ -28,6 +28,10 @@
             --shadowSoft: 0 8px 25px rgba(0,0,0,0.12);
             --ring: rgba(41,128,185,0.25);
             --muted: rgba(255,255,255,0.65);
+
+            /* Safe-area (iOS) */
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
         }
 
         * {
@@ -37,13 +41,25 @@
             font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
         }
 
+        html {
+            height: 100%;
+            height: -webkit-fill-available;
+        }
+
         body {
             background-color: var(--light);
             color: #333;
-            height: 100vh;
+            /* FIX iOS: 100vh bug */
+            min-height: 100dvh;
+            height: 100dvh;
+            min-height: -webkit-fill-available;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+
+            /* safe area */
+            padding-top: var(--sat);
+            padding-bottom: var(--sab);
         }
 
         .hidden { display: none !important; }
@@ -113,6 +129,9 @@
             overflow: hidden;
             backdrop-filter: blur(10px);
             transition: height 0.12s ease;
+
+            /* safe area */
+            padding-top: var(--sat);
         }
 
         #ptr-indicator .ptr-box {
@@ -148,6 +167,10 @@
             align-items: center;
             z-index: 2000;
             padding: 18px;
+
+            /* safe area */
+            padding-top: calc(18px + var(--sat));
+            padding-bottom: calc(18px + var(--sab));
         }
 
         .login-box {
@@ -295,6 +318,7 @@
                         radial-gradient(900px 500px at 85% 18%, rgba(39,174,96,0.10), transparent 55%),
                         linear-gradient(180deg, #f7fafc, #eef2f7);
             position: relative;
+            min-height: 0;
         }
 
         #mobile-overlay {
@@ -314,6 +338,9 @@
             box-shadow: 10px 0 35px rgba(0,0,0,0.16);
             border-right: 1px solid rgba(255,255,255,0.06);
             z-index: 2100;
+
+            /* safe area */
+            padding-top: var(--sat);
         }
 
         aside h3 {
@@ -383,11 +410,12 @@
             overflow: hidden;
             background: transparent;
             min-width: 0;
+            min-height: 0;
         }
 
         header {
             background: rgba(255,255,255,0.72);
-            padding: 14px 18px;
+            padding: calc(14px + var(--sat)) 18px 14px 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -406,6 +434,10 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             min-width: 0;
+            min-height: 0;
+
+            /* evita corte inferior en iOS */
+            padding-bottom: calc(18px + var(--sab));
         }
 
         .card {
@@ -867,8 +899,8 @@
                 transform: translateX(0%);
             }
 
-            header { padding: 12px 12px; }
-            #content { padding: 12px; }
+            header { padding: calc(12px + var(--sat)) 12px 12px 12px; }
+            #content { padding: 12px; padding-bottom: calc(12px + var(--sab)); }
 
             table { min-width: 780px; }
             .modal-content { max-width: 96vw; }
@@ -916,6 +948,17 @@
             border: 1px solid #ffe8a1;
             border-left: 5px solid var(--warning);
             border-radius: 6px;
+        }
+
+        /* Renegociación: bloque */
+        .reneg-box {
+            background: rgba(243,156,18,0.10);
+            border: 1px solid rgba(243,156,18,0.22);
+            border-left: 6px solid rgba(243,156,18,0.55);
+            padding: 12px;
+            border-radius: 14px;
+            box-shadow: 0 10px 22px rgba(0,0,0,0.06);
+            margin-bottom: 12px;
         }
 
     </style>
@@ -1026,16 +1069,7 @@
                         </div>
                     </div>
 
-                    <!-- NUEVO: Card de reservas al inicio (además del gráfico) -->
-                    <div class="card" style="border: 1px solid rgba(243,156,18,0.28); background: rgba(255,255,255,0.92);">
-                        <div class="flex justify-between items-center" style="flex-wrap:wrap; gap:10px;">
-                            <h4 class="kpi-title" style="color: var(--warning); font-weight: 950;">
-                                <i class="fas fa-bookmark"></i> Reservas Activas
-                            </h4>
-                            <span style="font-weight:900; color:#64748b;">Terrenos en estado “Reservado”</span>
-                        </div>
-                        <h1 id="kpi-reservas" class="kpi-value" style="color: var(--warning); margin-top:10px;">0</h1>
-                    </div>
+                    <!-- (ELIMINADO) Card grande de Reservas Activas encima del gráfico -->
 
                     <div class="card">
                         <div class="chart-container">
@@ -1196,8 +1230,8 @@
                                 </table>
                             </div>
                         </div>
-
-                        <div id="tab-vendas-completos" class="hidden">
+                        
+                                                <div id="tab-vendas-completos" class="hidden">
                             <h4 style="margin-bottom:10px; color:var(--success); font-weight:950;">Pagos Finalizados</h4>
                             <div class="table-wrap">
                                 <table>
@@ -1409,6 +1443,75 @@
                 </div>
 
                 <button type="submit" class="btn btn-s w-100"><i class="fas fa-check"></i> Confirmar Recepción</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- NUEVO: Modal Renegociación -->
+    <div id="modal-reneg" class="modal hidden">
+        <div class="modal-content" style="max-width:560px;">
+            <div class="modal-header">
+                <h3 style="font-weight:950; color:#0f172a;">Renegociación de deuda</h3>
+                <button class="close-modal" onclick="closeModal('modal-reneg')">&times;</button>
+            </div>
+
+            <form id="form-reneg">
+                <input type="hidden" id="ren-venda-id">
+
+                <div class="reneg-box">
+                    <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                        <div style="font-weight:950; color:#0f172a;">
+                            <i class="fas fa-arrows-rotate" style="color:var(--warning)"></i>
+                            Venta: <span id="ren-info"></span>
+                        </div>
+                        <div style="font-weight:900; color:#334155;">
+                            Moneda: <span id="ren-moneda" class="currency-badge">-</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+                        <div>
+                            <div style="font-weight:900; color:#334155;">Saldo pendiente actual</div>
+                            <div id="ren-saldo-actual" style="font-weight:950; color:var(--danger); font-size:1.15rem;">-</div>
+                        </div>
+                        <div>
+                            <div style="font-weight:900; color:#334155;">Cuotas pendientes</div>
+                            <div id="ren-cant-actual" style="font-weight:950; color:#0f172a; font-size:1.05rem;">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Nuevo saldo pendiente (mismo tipo de moneda de la venta)</label>
+                    <input type="number" id="ren-nuevo-saldo" step="0.01" required oninput="renCalcPreview()">
+                </div>
+
+                <div class="flex gap-2" style="flex-wrap:wrap;">
+                    <div class="input-group w-100">
+                        <label>Nuevas cuotas</label>
+                        <input type="number" id="ren-ncuotas" min="1" value="12" required oninput="renCalcPreview()">
+                    </div>
+                    <div class="input-group w-100">
+                        <label>1er vencimiento (nuevo plan)</label>
+                        <input type="date" id="ren-fecha1" required oninput="renCalcPreview()">
+                    </div>
+                </div>
+
+                <div class="live-calc-box" style="background:rgba(41,128,185,0.08); border-color:rgba(41,128,185,0.18);">
+                    <h4 style="font-weight:950; color:#0f172a;">
+                        Nueva cuota estimada: <span id="ren-cuota-preview">0,00</span> <span id="ren-moneda2" style="font-size:0.85rem"></span>
+                    </h4>
+                </div>
+
+                <div class="input-group" style="margin-top:12px;">
+                    <label>Motivo / Notas de renegociación (opcional)</label>
+                    <textarea id="ren-notas" rows="3" placeholder="Ej: Se reprograma por atraso, nuevo acuerdo con cliente..."></textarea>
+                </div>
+
+                <div class="text-right" style="margin-top:12px; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
+                    <button type="button" onclick="closeModal('modal-reneg')" class="btn btn-g">Cancelar</button>
+                    <button type="submit" class="btn btn-w"><i class="fas fa-arrows-rotate"></i> Aplicar renegociación</button>
+                </div>
             </form>
         </div>
     </div>
@@ -1737,8 +1840,8 @@
 
             renderTerrenoFilePool();
         }
-
-        function renderVendaFilePool() {
+        
+                function renderVendaFilePool() {
             const box = document.getElementById('v-files-pool');
             const counter = document.getElementById('v-files-count');
             if (!box || !counter) return;
@@ -2460,7 +2563,7 @@
         }
         window.openVenda = openVenda;
         
-                document.getElementById('form-venda').addEventListener('submit', async (e) => {
+        document.getElementById('form-venda').addEventListener('submit', async (e) => {
             e.preventDefault();
             document.getElementById('loader').classList.remove('hidden');
 
@@ -2515,7 +2618,8 @@
                 fecha_entrada: today,
                 cuotas: cuotas,
                 data: new Date().toISOString(),
-                notas: ""
+                notas: "",
+                renegociaciones: []
             };
 
             await db.createDocument(DB_ID, COL_VENDAS, ID.unique(), { dados: JSON.stringify(venda) }, getPermissions());
@@ -2577,6 +2681,19 @@
             return rem;
         }
 
+        function getPendingCuotasSorted(v) {
+            const pending = (v.cuotas || []).filter(c => !c.pago);
+            pending.sort((a, b) => {
+                const ad = parseDateYMD(a.venc);
+                const bd = parseDateYMD(b.venc);
+                if (ad && bd) return ad.getTime() - bd.getTime();
+                if (ad && !bd) return -1;
+                if (!ad && bd) return 1;
+                return (parseInt(a.n || 0) - parseInt(b.n || 0));
+            });
+            return pending;
+        }
+
         function buildCobranzasListFiltered() {
             const f = document.getElementById('search-venda').value.toLowerCase();
             const mode = (document.getElementById('filter-cobranzas')?.value || 'all');
@@ -2585,7 +2702,8 @@
             vendas.forEach(v => {
                 if (!v.cliente.toLowerCase().includes(f)) return;
 
-                const pendente = v.cuotas.find(c => !c.pago);
+                const pendingSorted = getPendingCuotasSorted(v);
+                const pendente = pendingSorted[0];
                 if (!pendente) return;
 
                 const dd = daysDiffFromToday(pendente.venc);
@@ -2728,6 +2846,8 @@
             vendas.forEach(v => {
                 if (!v.cliente.toLowerCase().includes(f)) return;
 
+                const hasDebt = (v.cuotas || []).some(c => !c.pago);
+
                 l2.innerHTML += `<tr>
                     <td>${v.$id.substring(0,5)}</td>
                     <td>${v.cliente}</td>
@@ -2735,11 +2855,12 @@
                     <td>${v.moneda} ${new Intl.NumberFormat('es-BO').format(v.total)}</td>
                     <td style="display:flex; gap:8px; flex-wrap:wrap;">
                         <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')"><i class="fas fa-edit"></i></button>
+                        ${hasDebt ? `<button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openRenegociar('${v.$id}')" title="Renegociar deuda"><i class="fas fa-arrows-rotate"></i></button>` : ``}
                         <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
 
-                let pendente = v.cuotas.find(c => !c.pago);
+                let pendente = getPendingCuotasSorted(v)[0];
                 if (!pendente) {
                     l3.innerHTML += `<tr>
                         <td>${v.cliente}</td>
@@ -2776,7 +2897,10 @@
                     <td>${pendente.n}/${v.cuotas.length} ${labelExtra}</td>
                     <td style="color:${cor};font-weight:950">${pendente.venc}</td>
                     <td>${v.moneda} ${new Intl.NumberFormat('es-BO').format(pendente.valor)}</td>
-                    <td><button class="btn btn-s btn-sm" onclick="openPagar('${v.$id}', ${pendente.n})">Cobrar</button></td>
+                    <td style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-s btn-sm" onclick="openPagar('${v.$id}', ${pendente.n})">Cobrar</button>
+                        <button class="btn btn-w btn-sm" onclick="openRenegociar('${v.$id}')" title="Renegociar deuda"><i class="fas fa-arrows-rotate"></i></button>
+                    </td>
                 </tr>`;
             });
         }
@@ -2831,6 +2955,180 @@
             await db.updateDocument(DB_ID, COL_VENDAS, vId, { dados: JSON.stringify(v) });
             closeModal('modal-pagar');
             loadData();
+        });
+
+        // ------------------------------
+        // RENEGOCIACIÓN
+        // ------------------------------
+        function round2(n) {
+            const x = parseFloat(n);
+            if (!isFinite(x)) return 0;
+            return Math.round(x * 100) / 100;
+        }
+
+        function sumPaidCuotas(v) {
+            let s = 0;
+            (v.cuotas || []).forEach(c => {
+                if (!c.pago) return;
+                const val = (c.valor_pago !== undefined && c.valor_pago !== null) ? (parseFloat(c.valor_pago) || 0) : (parseFloat(c.valor) || 0);
+                s += val;
+            });
+            return s;
+        }
+
+        function sumPendingCuotas(v) {
+            let s = 0;
+            (v.cuotas || []).forEach(c => {
+                if (c.pago) return;
+                s += (parseFloat(c.valor) || 0);
+            });
+            return s;
+        }
+
+        window.openRenegociar = (vId) => {
+            const v = vendas.find(x => x.$id === vId);
+            if (!v) return;
+
+            const pending = getPendingCuotasSorted(v);
+            if (!pending.length) {
+                alert('Esta venta no tiene deuda pendiente.');
+                return;
+            }
+
+            const saldo = sumPendingCuotas(v);
+            const moneda = safeCurrency(v.moneda);
+
+            document.getElementById('ren-venda-id').value = vId;
+            document.getElementById('ren-info').innerText = `${v.cliente} • ${v.landNome}`;
+            document.getElementById('ren-moneda').innerText = moneda;
+            document.getElementById('ren-moneda2').innerText = moneda;
+
+            document.getElementById('ren-saldo-actual').innerText = `${moneda} ${saldo.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('ren-cant-actual').innerText = `${pending.length}`;
+
+            document.getElementById('ren-nuevo-saldo').value = round2(saldo).toFixed(2);
+            document.getElementById('ren-ncuotas').value = Math.max(1, pending.length);
+
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('ren-fecha1').value = today;
+            document.getElementById('ren-notas').value = '';
+
+            renCalcPreview();
+
+            document.getElementById('modal-reneg').classList.remove('hidden');
+        };
+
+        window.renCalcPreview = () => {
+            try {
+                const vId = document.getElementById('ren-venda-id').value;
+                const v = vendas.find(x => x.$id === vId);
+                if (!v) return;
+
+                const moneda = safeCurrency(v.moneda);
+                const nuevoSaldo = parseFloat(document.getElementById('ren-nuevo-saldo').value) || 0;
+                const ncuotas = parseInt(document.getElementById('ren-ncuotas').value) || 1;
+                const cuota = (ncuotas > 0) ? (nuevoSaldo / ncuotas) : nuevoSaldo;
+
+                document.getElementById('ren-cuota-preview').innerText =
+                    new Intl.NumberFormat('es-BO', { style: 'currency', currency: moneda }).format(cuota);
+            } catch (e) {
+                console.error('renCalcPreview', e);
+            }
+        };
+
+        document.getElementById('form-reneg').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            document.getElementById('loader').classList.remove('hidden');
+
+            const vId = document.getElementById('ren-venda-id').value;
+            const v = vendas.find(x => x.$id === vId);
+            if (!v) { document.getElementById('loader').classList.add('hidden'); return; }
+
+            const nuevoSaldo = round2(parseFloat(document.getElementById('ren-nuevo-saldo').value) || 0);
+            const ncuotas = Math.max(1, parseInt(document.getElementById('ren-ncuotas').value) || 1);
+            const fecha1 = document.getElementById('ren-fecha1').value;
+            const notas = document.getElementById('ren-notas').value || '';
+
+            const moneda = safeCurrency(v.moneda);
+            const today = new Date().toISOString().split('T')[0];
+
+            // snapshot
+            const cuotasOld = Array.isArray(v.cuotas) ? v.cuotas : [];
+            const paid = cuotasOld.filter(c => c.pago);
+            const unpaid = cuotasOld.filter(c => !c.pago);
+            const saldoAnterior = sumPendingCuotas(v);
+
+            // nuevo plan
+            const baseDate = new Date(fecha1);
+            let newCuotas = [];
+            const maxN = cuotasOld.reduce((m, c) => Math.max(m, parseInt(c.n || 0) || 0), 0);
+
+            for (let i = 0; i < ncuotas; i++) {
+                const dt = new Date(baseDate);
+                dt.setMonth(dt.getMonth() + i);
+                newCuotas.push({
+                    n: maxN + i + 1,
+                    valor: round2(nuevoSaldo / ncuotas),
+                    venc: dt.toISOString().split('T')[0],
+                    pago: false,
+                    renegociada: true
+                });
+            }
+
+            // Ajuste de redondeo en última cuota para cuadrar total exacto
+            const sumNew = newCuotas.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
+            const diff = round2(nuevoSaldo - sumNew);
+            if (Math.abs(diff) >= 0.01 && newCuotas.length) {
+                newCuotas[newCuotas.length - 1].valor = round2((parseFloat(newCuotas[newCuotas.length - 1].valor) || 0) + diff);
+            }
+
+            // Guardar historial
+            if (!Array.isArray(v.renegociaciones)) v.renegociaciones = [];
+            v.renegociaciones.push({
+                fecha: today,
+                moneda: moneda,
+                saldo_anterior: round2(saldoAnterior),
+                cuotas_anterior: unpaid,
+                nuevo_saldo: round2(nuevoSaldo),
+                nuevas_cuotas: ncuotas,
+                nuevo_vencimiento1: fecha1,
+                notas: notas
+            });
+
+            // Mantener cuotas pagadas + nuevo plan
+            v.cuotas = [...paid, ...newCuotas];
+
+            // Ordenar por vencimiento (más coherente para cobrar/amortizar)
+            v.cuotas.sort((a, b) => {
+                const ad = parseDateYMD(a.venc);
+                const bd = parseDateYMD(b.venc);
+                if (ad && bd) return ad.getTime() - bd.getTime();
+                if (ad && !bd) return -1;
+                if (!ad && bd) return 1;
+                return (parseInt(a.n || 0) - parseInt(b.n || 0));
+            });
+
+            // total recalculado (entrada + pagado + nuevo saldo)
+            const entrada = parseFloat(v.entrada) || 0;
+            const paidSum = sumPaidCuotas(v);
+
+            if (v.total_original === undefined || v.total_original === null) {
+                v.total_original = v.total;
+            }
+
+            v.total = round2(entrada + paidSum + nuevoSaldo);
+
+            // anexar nota
+            const txtNote = `\n[Renegociación ${today}] Nuevo saldo: ${moneda} ${nuevoSaldo.toFixed(2)} • Cuotas: ${ncuotas} • 1er venc: ${fecha1}${notas ? ' • ' + notas : ''}`;
+            v.notas = (v.notas || '') + txtNote;
+
+            try {
+                await db.updateDocument(DB_ID, COL_VENDAS, vId, { dados: JSON.stringify(v) });
+                closeModal('modal-reneg');
+                loadData();
+            } finally {
+                document.getElementById('loader').classList.add('hidden');
+            }
         });
 
         window.openEdit = (id, type) => {
@@ -3056,7 +3354,6 @@
             document.getElementById('kpi-disp').innerText = disp;
             document.getElementById('kpi-vendidos').innerText = vend;
 
-            document.getElementById('kpi-reservas').innerText = reserv;
             document.getElementById('kpi-reservados-mini').innerText = reserv;
 
             const s = document.getElementById('filter-date-start').value,
