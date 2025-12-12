@@ -323,7 +323,7 @@
             text-align: center;
             cursor: pointer;
             font-weight: bold;
-            z-index: 10;
+            z-index: 20;
         }
 
         /* Miniaturas en la Tabla del Inventario */
@@ -965,6 +965,66 @@
             window.open(u, '_blank', 'noopener,noreferrer');
         };
 
+        function inferExtFromMime(mime) {
+            const m = String(mime || '').toLowerCase().trim();
+            if (m === 'application/pdf') return 'pdf';
+            if (m === 'image/jpeg') return 'jpg';
+            if (m === 'image/jpg') return 'jpg';
+            if (m === 'image/png') return 'png';
+            if (m === 'image/webp') return 'webp';
+            if (m === 'image/gif') return 'gif';
+            if (m === 'image/heic') return 'heic';
+            if (m === 'image/heif') return 'heic';
+            if (m === 'image/svg+xml') return 'svg';
+            return '';
+        }
+
+        function sanitizeFileForUpload(file) {
+            try {
+                const originalName = String(file && file.name ? file.name : '');
+                const mime = String(file && file.type ? file.type : '');
+
+                let ext = getExt(originalName);
+                if (ext === 'jpeg') ext = 'jpg';
+                if (ext === 'heif') ext = 'heic';
+
+                if (!ext) {
+                    ext = inferExtFromMime(mime);
+                }
+
+                if (!ext) {
+                    ext = 'bin';
+                }
+
+                let base = originalName;
+                const dot = base.lastIndexOf('.');
+                if (dot !== -1) base = base.slice(0, dot);
+                base = String(base || '').trim();
+
+                if (!base) {
+                    base = 'archivo_' + Date.now();
+                }
+
+                const safeName = base + '.' + ext;
+
+                if (safeName !== originalName) {
+                    try {
+                        const safeFile = new File([file], safeName, {
+                            type: file.type || mime || '',
+                            lastModified: file.lastModified || Date.now()
+                        });
+                        return { file: safeFile, safeName, originalName, ext };
+                    } catch (_) {
+                        return { file, safeName: originalName, originalName, ext: getExt(originalName) || ext };
+                    }
+                }
+
+                return { file, safeName, originalName, ext };
+            } catch (e) {
+                return { file, safeName: (file && file.name) ? file.name : 'archivo', originalName: (file && file.name) ? file.name : 'archivo', ext: '' };
+            }
+        }
+
         // ------------------------------
         // Permisos de Seguridad
         // ------------------------------
@@ -1039,49 +1099,88 @@
         }
 
         // ------------------------------
-        // UPLOAD (CORRIGIDO): guarda fileId, mime, ext, size
+        // UPLOAD (CORRIGIDO): guarda fileId, mime, ext, size + sanitiza nome/ext
         // ------------------------------
         async function uploadFiles(filesInput) {
-            if (!filesInput || !filesInput.files || !filesInput.files.length) return [];
+            const result = { filesData: [], failures: [], selectedCount: 0 };
 
-            let filesData = [];
+            if (!filesInput || !filesInput.files || !filesInput.files.length) return result;
+
+            result.selectedCount = filesInput.files.length;
+
             for (let i = 0; i < filesInput.files.length; i++) {
+                const originalFile = filesInput.files[i];
                 try {
-                    const file = filesInput.files[i];
-                    const res = await storage.createFile(BUCKET_ID, ID.unique(), file, getPermissions());
+                    const sanitized = sanitizeFileForUpload(originalFile);
+                    const fileToSend = sanitized.file;
 
-                    const isPdf = (file.type === 'application/pdf') || file.name.toLowerCase().endsWith('.pdf');
-                    filesData.push({
+                    const res = await storage.createFile(BUCKET_ID, ID.unique(), fileToSend, getPermissions());
+
+                    const safeMime = (fileToSend && fileToSend.type) ? fileToSend.type : (originalFile.type || '');
+                    const safeName = (fileToSend && fileToSend.name) ? fileToSend.name : (originalFile.name || 'Archivo');
+                    const ext = getExt(safeName) || sanitized.ext || getExt(originalFile.name);
+
+                    const isPdf = (String(safeMime).toLowerCase() === 'application/pdf') || String(ext).toLowerCase() === 'pdf' || safeName.toLowerCase().endsWith('.pdf');
+
+                    result.filesData.push({
                         id: res.$id,
-                        name: file.name,
-                        mime: file.type || '',
-                        ext: getExt(file.name),
-                        size: file.size || 0,
+                        name: safeName,
+                        mime: safeMime || '',
+                        ext: ext || '',
+                        size: (originalFile && typeof originalFile.size === 'number') ? originalFile.size : 0,
                         isPdf: isPdf,
                         createdAt: new Date().toISOString()
                     });
                 } catch (e) {
-                    console.error("Upload error", e);
                     const msg =
                         (e && e.message) ? e.message :
                         (typeof e === "string") ? e :
                         JSON.stringify(e);
-                    alert("Error subiendo archivo.\n\n" + msg);
+
+                    result.failures.push({
+                        name: (originalFile && originalFile.name) ? originalFile.name : 'Archivo',
+                        error: msg
+                    });
+
+                    console.error("Upload error", e);
                 }
             }
 
-            try { filesInput.value = ''; } catch (_) {}
-            return filesData;
-        }
+            if (result.failures.length) {
+                let txt = "Error subiendo archivo(s):\n\n";
+                result.failures.forEach((f, idx) => {
+                    txt += (idx + 1) + ") " + f.name + "\n" + f.error + "\n\n";
+                });
+                alert(txt);
+            }
 
-        // ------------------------------
+            try { filesInput.value = ''; } catch (_) {}
+            return result;
+        }
+        
+                // ------------------------------
         // TERRENOS
         // ------------------------------
         document.getElementById('form-terreno').addEventListener('submit', async (e) => {
             e.preventDefault();
             document.getElementById('loader').classList.remove('hidden');
 
-            const files = await uploadFiles(document.getElementById('t-files'));
+            const inputFiles = document.getElementById('t-files');
+            const up = await uploadFiles(inputFiles);
+
+            // REGISTRO: si el usuario seleccionó archivos, TODOS deben subir.
+            // Si alguno falla, NO guardamos el terreno para evitar "guardar solo PDF".
+            if (up.selectedCount > 0 && up.failures.length > 0) {
+                document.getElementById('loader').classList.add('hidden');
+                return;
+            }
+            if (up.selectedCount > 0 && up.filesData.length === 0) {
+                alert("No se pudo subir ningún archivo. Verifique los formatos permitidos en Storage.");
+                document.getElementById('loader').classList.add('hidden');
+                return;
+            }
+
+            const files = up.filesData;
 
             const data = {
                 codigo: document.getElementById('t-codigo').value,
@@ -1148,8 +1247,8 @@
                 </tr>`;
             });
         }
-        
-                // ------------------------------
+
+        // ------------------------------
         // VENTAS
         // ------------------------------
         window.openVenda = (id) => {
@@ -1172,7 +1271,8 @@
             const tId = document.getElementById('v-land-id').value;
             const terreno = terrenos.find(x => x.$id === tId);
 
-            const files = await uploadFiles(document.getElementById('v-files'));
+            const up = await uploadFiles(document.getElementById('v-files'));
+            const files = up.filesData;
 
             const total = parseFloat(document.getElementById('v-total').value);
             const ent = parseFloat(document.getElementById('v-entrada').value);
@@ -1272,7 +1372,7 @@
         });
 
         // ------------------------------
-        // EDICIÓN Y DETALLES (CORRIGIDO: PDF e imagen abren con <a> siempre)
+        // EDICIÓN Y DETALLES
         // ------------------------------
         window.openEdit = (id, type) => {
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
@@ -1311,7 +1411,7 @@
 
                 g.innerHTML += `<div class="img-preview-box">
                     ${content}
-                    <div class="btn-del-img" onclick="event.stopPropagation(); remFoto('${id}', '${type}', ${i})">X</div>
+                    <div class="btn-del-img" onclick="event.preventDefault(); event.stopPropagation(); remFoto('${id}', '${type}', ${i})">X</div>
                 </div>`;
             });
 
@@ -1335,7 +1435,8 @@
 
             d.fotos = normalizeFotos(d.fotos);
 
-            const newFiles = await uploadFiles(document.getElementById('e-new-files'));
+            const up = await uploadFiles(document.getElementById('e-new-files'));
+            const newFiles = up.filesData;
             d.fotos = [...d.fotos, ...normalizeFotos(newFiles)];
 
             if(type === 'land') {
