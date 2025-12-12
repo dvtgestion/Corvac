@@ -55,8 +55,8 @@
         .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; }
         .input-group input:focus { border-color: var(--accent); outline: none; }
         
-        /* Preview de Dinero/Numeros (Texto Verde Pequeño) */
-        .number-preview { font-size: 0.9rem; color: var(--success); font-weight: bold; margin-top: 4px; display: block; background: #e8f8f5; padding: 2px 8px; border-radius: 4px; display:inline-block;}
+        /* Preview de Dinero/Numeros */
+        .number-preview { font-size: 0.9rem; color: var(--success); font-weight: bold; margin-top: 4px; display: inline-block; background: #e8f8f5; padding: 2px 8px; border-radius: 4px; border: 1px solid #c3e6cb; }
 
         /* Layout */
         #app-container { display: flex; flex: 1; overflow: hidden; }
@@ -224,8 +224,8 @@
                                 </div>
                             </div>
                             <div class="input-group">
-                                <label><i class="fas fa-camera"></i> Fotos del Terreno</label>
-                                <input type="file" id="t-files" multiple accept="image/*">
+                                <label><i class="fas fa-camera"></i> Fotos y Documentos (PDF)</label>
+                                <input type="file" id="t-files" multiple accept="image/*, .pdf">
                             </div>
                             <div class="input-group"><label>Notas Adicionales</label><textarea id="t-notas" rows="3"></textarea></div>
                             <button type="submit" class="btn btn-s w-100" style="font-size:1.1rem;">Guardar Terreno</button>
@@ -245,8 +245,7 @@
                                     <th>Imagen</th>
                                     <th>Código</th>
                                     <th>Nombre</th>
-                                    <th>Superficie</th>
-                                    <th>Precio</th>
+                                    <th>Superficie</th> <th>Precio</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -321,7 +320,10 @@
                     <div class="input-group w-100"><label>Cliente</label><input type="text" id="v-cliente" required></div>
                     <div class="input-group w-100"><label>CI/Doc</label><input type="text" id="v-ci"></div>
                 </div>
-                <div class="input-group"><label>Documentos (Fotos)</label><input type="file" id="v-files" multiple accept="image/*"></div>
+                <div class="input-group">
+                    <label>Documentos / Fotos (PDF/IMG)</label>
+                    <input type="file" id="v-files" multiple accept="image/*, .pdf">
+                </div>
                 <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
                 <div class="flex gap-2">
                     <div class="input-group w-100">
@@ -359,7 +361,7 @@
                 </div>
                 <div class="input-group">
                     <label>Monto a Pagar (Amortizable)</label>
-                    <input type="number" id="p-valor-real" step="0.01" required style="font-size:1.3rem; font-weight:bold; color:green; text-align:center;" oninput="window.showPreview(this, 'preview-p-valor', 'Ref')">
+                    <input type="number" id="p-valor-real" step="0.01" required style="font-size:1.3rem; font-weight:bold; color:green; text-align:center;" oninput="window.showPreview(this, 'preview-p-valor', document.getElementById('p-valor-display').innerText.substring(0,3))">
                     <span id="preview-p-valor" class="number-preview" style="width:100%; text-align:center; margin-top:5px;">0,00</span>
                 </div>
                 <div id="div-tc" class="input-group hidden" style="background:#fff3cd; padding:10px; border-radius:5px;">
@@ -378,10 +380,10 @@
                 <input type="hidden" id="e-id"><input type="hidden" id="e-type">
                 <div class="input-group"><label>Nombre / Cliente</label><input type="text" id="e-nome"></div>
                 <div class="input-group"><label>Valor / Precio</label><input type="number" id="e-valor" step="0.01"></div>
-                <div class="input-group"><label>Notas</label><textarea id="e-notas" rows="3"></textarea></div>
+                <div class="input-group"><label>Notas / Observaciones</label><textarea id="e-notas" rows="3"></textarea></div>
                 <label><strong>Galeria:</strong></label>
                 <div id="e-gallery" class="gallery"></div>
-                <div class="input-group" style="margin-top:15px;"><label><i class="fas fa-plus"></i> Agregar fotos</label><input type="file" id="e-new-files" multiple accept="image/*"></div>
+                <div class="input-group" style="margin-top:15px;"><label><i class="fas fa-plus"></i> Agregar fotos/docs</label><input type="file" id="e-new-files" multiple accept="image/*, .pdf"></div>
                 <div class="text-right" style="margin-top:20px;">
                     <button type="button" onclick="closeModal('modal-edit')" class="btn btn-g">Cerrar</button>
                     <button type="submit" class="btn btn-p">Guardar Cambios</button>
@@ -609,7 +611,7 @@
             document.getElementById('p-data').value = new Date().toISOString().split('T')[0];
             document.getElementById('div-tc').classList.toggle('hidden', v.moneda!=='USD');
             
-            // Preview
+            // Preview con Moneda correcta
             window.showPreview(document.getElementById('p-valor-real'), 'preview-p-valor', v.moneda);
             
             document.getElementById('modal-pagar').classList.remove('hidden');
@@ -694,7 +696,7 @@
             let imgs = ''; if(d.fotos) d.fotos.forEach(u => imgs += `<img src="${u}" class="img-full" onclick="window.open('${u}')">`);
             const c = document.getElementById('detalles-contenido');
             c.innerHTML = (type === 'land') ? 
-                `<h2>${d.nome}</h2><p><strong>Precio:</strong> ${d.moneda} ${new Intl.NumberFormat('es-BO').format(d.precio)}</p><p><strong>Estado:</strong> ${d.estado}</p><p>${d.notas}</p><hr>${imgs}` : 
+                `<h2>${d.nome}</h2><p><strong>Precio:</strong> ${d.moneda} ${new Intl.NumberFormat('es-BO').format(d.precio)}</p><p><strong>Superficie:</strong> ${new Intl.NumberFormat('es-BO').format(d.area)} m²</p><p><strong>Estado:</strong> ${d.estado}</p><p>${d.notas}</p><hr>${imgs}` : 
                 `<h2>${d.cliente}</h2><p><strong>CI:</strong> ${d.ci}</p><hr>${imgs}`;
             document.getElementById('modal-detalles').classList.remove('hidden');
         }
@@ -715,11 +717,29 @@
         }
         window.closeModal=(id)=>document.getElementById(id).classList.add('hidden');
         
-        // Fix BOB NAN: Validar isNaN
-        window.showPreview=(i, id, c)=>{
+        // --- CORRECCIÓN DE PREVIEW ---
+        window.showPreview=(i, id, type)=>{
             let val = parseFloat(i.value);
             if(isNaN(val)) val = 0;
-            document.getElementById(id).innerText = new Intl.NumberFormat('es-BO', { style: 'currency', currency: c }).format(val);
+            
+            let result = '';
+            if(type === 'm²') {
+                // Formato para Area
+                result = new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2 }).format(val) + ' m²';
+            } else {
+                // Formato para Moneda (BOB, USD, Ref)
+                // Se o type for 'Ref', usa o simbolo da moeda da venda se possivel, ou vazio
+                let currencyCode = (type === 'Ref' || type === 'm²') ? undefined : type;
+                let options = { minimumFractionDigits: 2 };
+                if(currencyCode) {
+                    options.style = 'currency';
+                    options.currency = currencyCode;
+                }
+                result = new Intl.NumberFormat('es-BO', options).format(val);
+                if(!currencyCode && type !== 'm²') result = type + ' ' + result; // Fallback text prefix
+            }
+            
+            document.getElementById(id).innerText = result;
         }
         
         window.calcLive=()=>{ 
