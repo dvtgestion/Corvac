@@ -1076,6 +1076,31 @@
                             <canvas id="chart-fin"></canvas>
                         </div>
                     </div>
+
+                    <!-- NUEVO: Reportes / Exportación -->
+                    <div class="card" style="border:1px solid rgba(41,128,185,0.16);">
+                        <div class="flex justify-between items-center" style="gap:10px; flex-wrap:wrap;">
+                            <h3 style="font-weight:950; color:#0f172a; margin:0;">
+                                <i class="fas fa-file-export" style="color:var(--accent)"></i> Reportes y Exportación
+                            </h3>
+                            <span style="font-weight:900; color:#64748b; font-size:0.9rem;">
+                                Descarga CSV y/o imprime como PDF
+                            </span>
+                        </div>
+
+                        <div class="flex gap-2" style="flex-wrap:wrap; margin-top:12px;">
+                            <button class="btn btn-p" onclick="exportReporteInventarioCSV()"><i class="fas fa-warehouse"></i> Inventario (CSV)</button>
+                            <button class="btn btn-s" onclick="exportReporteVentasCSV()"><i class="fas fa-file-invoice-dollar"></i> Ventas (CSV)</button>
+                            <button class="btn btn-w" onclick="exportReporteCobranzasPendientesCSV()"><i class="fas fa-bell"></i> Cobranzas Pendientes (CSV)</button>
+                            <button class="btn btn-g" onclick="exportReporteRecaudacionPeriodoCSV()"><i class="fas fa-calendar-check"></i> Recaudación del Período (CSV)</button>
+                            <button class="btn btn-d" onclick="exportReporteGeneralPDF()"><i class="fas fa-print"></i> Reporte General (PDF)</button>
+                        </div>
+
+                        <div class="hint-box" style="margin-top:12px;">
+                            Los reportes se generan con los datos cargados del sistema.
+                            <small>El reporte “Recaudación del Período” usa el filtro “Desde/Hasta” del Resumen.</small>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="view-registro" class="hidden">
@@ -1231,7 +1256,7 @@
                             </div>
                         </div>
                         
-                                                <div id="tab-vendas-completos" class="hidden">
+                        <div id="tab-vendas-completos" class="hidden">
                             <h4 style="margin-bottom:10px; color:var(--success); font-weight:950;">Pagos Finalizados</h4>
                             <div class="table-wrap">
                                 <table>
@@ -1526,7 +1551,15 @@
                 <input type="hidden" id="e-id"><input type="hidden" id="e-type">
 
                 <div class="input-group"><label>Nombre / Cliente</label><input type="text" id="e-nome"></div>
-                <div class="input-group"><label>Valor / Precio <span id="e-moneda-badge" class="currency-badge">-</span></label><input type="number" id="e-valor" step="0.01"></div>
+
+                <!-- AJUSTE: Preview con separadores (punto y coma) debajo del valor -->
+                <div class="input-group">
+                    <label>Valor / Precio <span id="e-moneda-badge" class="currency-badge">-</span></label>
+                    <input type="number" id="e-valor" step="0.01"
+                           oninput="window.showPreview(this, 'preview-e-valor', document.getElementById('e-moneda-badge').innerText || 'BOB')">
+                    <span id="preview-e-valor" class="number-preview">0,00</span>
+                </div>
+
                 <div class="input-group"><label>Notas / Observaciones</label><textarea id="e-notas" rows="3"></textarea></div>
 
                 <label style="font-weight:950; color:#0f172a;"><strong>Archivos (Fotos/PDF):</strong></label>
@@ -1568,8 +1601,9 @@
         </div>
     </div>
     
-        <script>
-        const { Client, Account, Databases, Storage, ID, Query, Permission, Role } = Appwrite;
+    <script>
+    
+            const { Client, Account, Databases, Storage, ID, Query, Permission, Role } = Appwrite;
         const client = new Client();
 
         const PROJECT_ID = '693b19f6002a7ae91448';
@@ -1841,7 +1875,7 @@
             renderTerrenoFilePool();
         }
         
-                function renderVendaFilePool() {
+        function renderVendaFilePool() {
             const box = document.getElementById('v-files-pool');
             const counter = document.getElementById('v-files-count');
             if (!box || !counter) return;
@@ -2904,8 +2938,8 @@
                 </tr>`;
             });
         }
-
-        window.openPagar = (vId, n) => {
+        
+                window.openPagar = (vId, n) => {
             const v = vendas.find(x => x.$id === vId);
             const c = v.cuotas.find(x => x.n === n);
             document.getElementById('p-venda-id').value = vId;
@@ -3098,7 +3132,7 @@
             // Mantener cuotas pagadas + nuevo plan
             v.cuotas = [...paid, ...newCuotas];
 
-            // Ordenar por vencimiento (más coherente para cobrar/amortizar)
+            // Ordenar por vencimiento
             v.cuotas.sort((a, b) => {
                 const ad = parseDateYMD(a.venc);
                 const bd = parseDateYMD(b.venc);
@@ -3150,6 +3184,12 @@
                 monedaBadge.innerText = safeCurrency(mRaw);
             }
             document.getElementById('e-notas').value = (d.notas || '');
+
+            // AJUSTE: muestra preview formateado abajo del input (separadores)
+            try {
+                const cur = document.getElementById('e-moneda-badge').innerText || 'BOB';
+                window.showPreview(document.getElementById('e-valor'), 'preview-e-valor', cur);
+            } catch (_) {}
 
             const g = document.getElementById('e-gallery');
             g.innerHTML = '';
@@ -3245,6 +3285,17 @@
             loadData();
         };
 
+        // Helpers: formateo numérico (separadores y decimales)
+        function fmtNumber2(n) {
+            const v = parseFloat(n);
+            const x = isFinite(v) ? v : 0;
+            return x.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        function fmtMoneyInline(currency, n) {
+            const c = safeCurrency(currency);
+            return `${c} ${fmtNumber2(n)}`;
+        }
+
         window.verDetalles = (id, type) => {
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
             d.fotos = normalizeFotos(d.fotos);
@@ -3279,7 +3330,7 @@
                 }
 
                 c.innerHTML = `<h2 style="font-weight:950; color:#0f172a; margin-bottom:8px;">${d.nome}</h2>
-                   <p style="font-weight:900; color:#334155;"><strong>Precio:</strong> ${d.moneda} ${new Intl.NumberFormat('es-BO').format(d.precio)}</p>
+                   <p style="font-weight:900; color:#334155;"><strong>Precio:</strong> ${fmtMoneyInline(d.moneda, d.precio)}</p>
                    <p style="font-weight:900; color:#334155;"><strong>Superficie:</strong> ${new Intl.NumberFormat('es-BO').format(d.area)} m²</p>
                    <p style="font-weight:900; color:#334155;"><strong>Estado:</strong> ${d.estado}</p>
                    ${reservaHtml}
@@ -3290,8 +3341,40 @@
                     ? `<p style="color:#334155; margin-top:6px;"><strong>Notas:</strong> ${d.notas}</p>`
                     : '';
 
+                const moneda = safeCurrency(d.moneda || 'BOB');
+                const entrada = parseFloat(d.entrada) || 0;
+                const paidSum = sumPaidCuotas(d);
+                const pendingSum = sumPendingCuotas(d);
+                const proxima = getPendingCuotasSorted(d)[0];
+                const tcRef = getTcRefBsPerUsd(d);
+
+                let refBsTxt = '';
+                if (moneda === 'USD') {
+                    const totalBs = (parseFloat(d.total) || 0) * tcRef;
+                    const pagadoBs = (entrada + paidSum) * tcRef;
+                    const pendienteBs = pendingSum * tcRef;
+                    refBsTxt = `
+                        <div style="margin-top:10px; padding:10px 12px; border-radius:14px; background:rgba(15,23,42,0.04); border:1px solid rgba(15,23,42,0.10);">
+                            <div style="font-weight:950; color:#0f172a;">Referencia en Bs (TC: ${tcRef.toFixed(2)})</div>
+                            <div style="margin-top:6px; font-weight:900; color:#334155;">
+                                Total: Bs ${fmtNumber2(totalBs)} • Pagado: Bs ${fmtNumber2(pagadoBs)} • Pendiente: Bs ${fmtNumber2(pendienteBs)}
+                            </div>
+                        </div>
+                    `;
+                }
+
                 c.innerHTML = `<h2 style="font-weight:950; color:#0f172a; margin-bottom:8px;">${d.cliente}</h2>
                    <p style="font-weight:900; color:#334155;"><strong>CI:</strong> ${d.ci || ''}</p>
+
+                   <!-- AJUSTE: muestra Valor/Precio con formato (separadores) en Detalles -->
+                   <p style="font-weight:900; color:#334155; margin-top:6px;"><strong>Total:</strong> ${fmtMoneyInline(moneda, d.total)}</p>
+                   <p style="font-weight:900; color:#334155;"><strong>Entrada:</strong> ${fmtMoneyInline(moneda, entrada)}</p>
+                   <p style="font-weight:900; color:#334155;"><strong>Pagado (entrada + cuotas):</strong> ${fmtMoneyInline(moneda, (entrada + paidSum))}</p>
+                   <p style="font-weight:900; color:#334155;"><strong>Pendiente:</strong> ${fmtMoneyInline(moneda, pendingSum)}</p>
+                   <p style="font-weight:900; color:#334155;"><strong>Cuotas:</strong> ${(d.cuotas || []).filter(x => x.pago).length}/${(d.cuotas || []).length}</p>
+                   <p style="font-weight:900; color:#334155;"><strong>Próximo vencimiento:</strong> ${proxima ? proxima.venc : '—'}</p>
+
+                   ${refBsTxt}
                    ${notasHtml}
                    <hr style="margin:12px 0; border:0; border-top:1px solid rgba(15,23,42,0.08);">${mediaHtml}`;
             }
@@ -3400,6 +3483,348 @@
                 options: { maintainAspectRatio: false }
             });
         }
+
+        // =========================================================
+        // REPORTES / EXPORTACIÓN (CSV y PDF)
+        // =========================================================
+        function csvEscape(v) {
+            const s = (v === null || v === undefined) ? '' : String(v);
+            const needs = /[",\n\r;]/.test(s);
+            const out = s.replace(/"/g, '""');
+            return needs ? `"${out}"` : out;
+        }
+
+        function buildCsv(headers, rows) {
+            let csv = '';
+            csv += headers.map(csvEscape).join(';') + '\n';
+            rows.forEach(r => {
+                csv += r.map(csvEscape).join(';') + '\n';
+            });
+            return csv;
+        }
+
+        function downloadTextFile(filename, content, mime = 'text/plain;charset=utf-8') {
+            try {
+                const blob = new Blob([content], { type: mime });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => {
+                    try { URL.revokeObjectURL(url); } catch (_) {}
+                }, 500);
+            } catch (e) {
+                console.error('downloadTextFile error', e);
+                alert('No se pudo descargar el archivo.');
+            }
+        }
+
+        function getDateRangeForReports() {
+            const s = document.getElementById('filter-date-start')?.value || '';
+            const e = document.getElementById('filter-date-end')?.value || '';
+            const start = s ? new Date(s) : new Date(0);
+            const end = e ? new Date(e) : new Date(8640000000000000);
+            end.setHours(23, 59, 59, 999);
+            return { s, e, start, end };
+        }
+
+        window.exportReporteInventarioCSV = () => {
+            const headers = ['Código', 'Nombre/Ubicación', 'Superficie(m²)', 'Moneda', 'Precio', 'Estado', 'Cliente Reserva', 'Vence Reserva', 'Notas'];
+            const rows = (terrenos || []).map(t => {
+                const reservaCli = (t.reserva && t.reserva.cliente) ? t.reserva.cliente : '';
+                const reservaV = (t.reserva && t.reserva.vence) ? t.reserva.vence : '';
+                return [
+                    t.codigo || '',
+                    t.nome || '',
+                    (t.area !== undefined && t.area !== null) ? String(t.area) : '',
+                    safeCurrency(t.moneda || 'BOB'),
+                    (t.precio !== undefined && t.precio !== null) ? String(t.precio) : '',
+                    t.estado || '',
+                    reservaCli,
+                    reservaV,
+                    t.notas || ''
+                ];
+            });
+
+            const csv = buildCsv(headers, rows);
+            const stamp = new Date().toISOString().slice(0, 10);
+            downloadTextFile(`reporte_inventario_${stamp}.csv`, csv, 'text/csv;charset=utf-8');
+        };
+
+        window.exportReporteVentasCSV = () => {
+            const headers = ['ID', 'Fecha Venta', 'Cliente', 'CI', 'Terreno', 'Moneda', 'Total', 'Entrada', 'Pagado(Entrada+Cuotas)', 'Pendiente', 'Cuotas Pagadas', 'Cuotas Total', 'Próximo Vencimiento', 'TC (si aplica)', 'Notas'];
+            const rows = (vendas || []).map(v => {
+                const entrada = parseFloat(v.entrada) || 0;
+                const pagado = entrada + sumPaidCuotas(v);
+                const pendiente = sumPendingCuotas(v);
+                const proxima = getPendingCuotasSorted(v)[0];
+                const tc = (v.moneda === 'USD') ? getTcRefBsPerUsd(v) : (v.tc_venta || '');
+                return [
+                    v.$id || '',
+                    v.data ? String(v.data).slice(0, 10) : (v.fecha_entrada || ''),
+                    v.cliente || '',
+                    v.ci || '',
+                    v.landNome || '',
+                    safeCurrency(v.moneda || 'BOB'),
+                    (v.total !== undefined && v.total !== null) ? String(v.total) : '',
+                    String(entrada),
+                    String(pagado),
+                    String(pendiente),
+                    String((v.cuotas || []).filter(x => x.pago).length),
+                    String((v.cuotas || []).length),
+                    proxima ? proxima.venc : '',
+                    tc !== null && tc !== undefined ? String(tc) : '',
+                    v.notas || ''
+                ];
+            });
+
+            const csv = buildCsv(headers, rows);
+            const stamp = new Date().toISOString().slice(0, 10);
+            downloadTextFile(`reporte_ventas_${stamp}.csv`, csv, 'text/csv;charset=utf-8');
+        };
+
+        window.exportReporteCobranzasPendientesCSV = () => {
+            const headers = ['Cliente', 'CI', 'Terreno', 'Moneda', 'Cuota N°', 'Vencimiento', 'Monto', 'Estado', 'Días', 'Venta ID'];
+            const rows = [];
+
+            (vendas || []).forEach(v => {
+                const moneda = safeCurrency(v.moneda || 'BOB');
+                (v.cuotas || []).forEach(c => {
+                    if (c.pago) return;
+                    const dd = daysDiffFromToday(c.venc);
+                    const estado = (dd !== null && dd <= 0) ? ((dd === 0) ? 'VENCE HOY' : 'VENCIDA')
+                                  : (dd !== null && dd <= ALERT_DAYS) ? 'PRONTO'
+                                  : 'PENDIENTE';
+                    rows.push([
+                        v.cliente || '',
+                        v.ci || '',
+                        v.landNome || '',
+                        moneda,
+                        String(c.n || ''),
+                        c.venc || '',
+                        (c.valor !== undefined && c.valor !== null) ? String(c.valor) : '',
+                        estado,
+                        (dd === null || dd === undefined) ? '' : String(dd),
+                        v.$id || ''
+                    ]);
+                });
+            });
+
+            rows.sort((a, b) => {
+                const ad = parseDateYMD(a[5]);
+                const bd = parseDateYMD(b[5]);
+                if (ad && bd) return ad.getTime() - bd.getTime();
+                return 0;
+            });
+
+            const csv = buildCsv(headers, rows);
+            const stamp = new Date().toISOString().slice(0, 10);
+            downloadTextFile(`reporte_cobranzas_pendientes_${stamp}.csv`, csv, 'text/csv;charset=utf-8');
+        };
+
+        window.exportReporteRecaudacionPeriodoCSV = () => {
+            const { s, e, start, end } = getDateRangeForReports();
+
+            const map = new Map(); // date => amountBs
+            function addAmount(dateYMD, amountBs) {
+                const key = String(dateYMD || '').slice(0, 10);
+                if (!key) return;
+                const prev = map.get(key) || 0;
+                map.set(key, prev + (parseFloat(amountBs) || 0));
+            }
+
+            (vendas || []).forEach(v => {
+                const tcRef = getTcRefBsPerUsd(v);
+
+                // entrada
+                if (v.fecha_entrada) {
+                    const dEnt = new Date(v.fecha_entrada);
+                    if (dEnt >= start && dEnt <= end) {
+                        let val = parseFloat(v.entrada) || 0;
+                        if (safeCurrency(v.moneda) === 'USD') val *= tcRef;
+                        addAmount(v.fecha_entrada, val);
+                    }
+                } else if (v.data) {
+                    const dEnt = new Date(v.data);
+                    if (dEnt >= start && dEnt <= end) {
+                        let val = parseFloat(v.entrada) || 0;
+                        if (safeCurrency(v.moneda) === 'USD') val *= tcRef;
+                        addAmount(String(v.data).slice(0,10), val);
+                    }
+                }
+
+                // cuotas pagadas
+                (v.cuotas || []).forEach(c => {
+                    if (!c.pago || !c.data_pago) return;
+                    const dP = new Date(c.data_pago);
+                    if (dP < start || dP > end) return;
+
+                    let val = (c.valor_pago !== undefined && c.valor_pago !== null) ? (parseFloat(c.valor_pago) || 0) : (parseFloat(c.valor) || 0);
+                    if (safeCurrency(v.moneda) === 'USD') {
+                        const tc = (c.tc && isFinite(parseFloat(c.tc)) && parseFloat(c.tc) > 0) ? parseFloat(c.tc) : tcRef;
+                        val *= tc;
+                    }
+                    addAmount(c.data_pago, val);
+                });
+            });
+
+            const headers = ['Desde', 'Hasta', 'Fecha', 'Recaudado (Bs)'];
+            const dates = Array.from(map.keys()).sort((a, b) => {
+                const ad = parseDateYMD(a);
+                const bd = parseDateYMD(b);
+                if (ad && bd) return ad.getTime() - bd.getTime();
+                return 0;
+            });
+
+            const rows = dates.map(d => {
+                const amt = map.get(d) || 0;
+                return [s || '', e || '', d, amt.toFixed(2)];
+            });
+
+            const csv = buildCsv(headers, rows);
+            const stamp = new Date().toISOString().slice(0, 10);
+            downloadTextFile(`reporte_recaudacion_periodo_${stamp}.csv`, csv, 'text/csv;charset=utf-8');
+        };
+
+        window.exportReporteGeneralPDF = () => {
+            try {
+                const { s, e } = getDateRangeForReports();
+
+                const total = terrenos.length;
+                const disp = terrenos.filter(t => t.estado === 'Disponible').length;
+                const reserv = terrenos.filter(t => t.estado === 'Reservado').length;
+                const vend = terrenos.filter(t => t.estado === 'Vendido').length;
+
+                // recaudado del período (mismo cálculo que dashboard)
+                const start = s ? new Date(s) : new Date(0);
+                const end = e ? new Date(e) : new Date(8640000000000000);
+                end.setHours(23,59,59,999);
+
+                let rec = 0;
+                vendas.forEach(v => {
+                    let dEnt = v.fecha_entrada ? new Date(v.fecha_entrada) : new Date(v.data);
+                    if (dEnt >= start && dEnt <= end) {
+                        let pg = v.entrada;
+                        if (v.moneda === 'USD') pg *= getTcRefBsPerUsd(v);
+                        rec += pg;
+                    }
+                    (v.cuotas || []).forEach(c => {
+                        if (c.pago && c.data_pago) {
+                            let dC = new Date(c.data_pago);
+                            if (dC >= start && dC <= end) {
+                                let val = c.valor_pago || c.valor;
+                                if (v.moneda === 'USD') val *= (c.tc || getTcRefBsPerUsd(v));
+                                rec += val;
+                            }
+                        }
+                    });
+                });
+
+                // resumen de deudas
+                let deudaTotalRef = 0;
+                let deudaVencidaRef = 0;
+                (vendas || []).forEach(v => {
+                    deudaTotalRef += getRemainingDebtRefBs(v);
+                    deudaVencidaRef += getOverdueDebtRefBs(v);
+                });
+
+                const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Reporte General - Corvacruz</title>
+<style>
+    body { font-family: Arial, Helvetica, sans-serif; padding: 24px; color:#0f172a; }
+    h1 { margin:0 0 6px 0; }
+    .sub { color:#334155; font-weight:700; margin-bottom:14px; }
+    .kpis { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0 18px 0; }
+    .kpi { border:1px solid rgba(15,23,42,0.12); border-radius:12px; padding:12px; min-width:160px; }
+    .kpi .t { color:#64748b; font-weight:800; font-size:12px; }
+    .kpi .v { font-size:22px; font-weight:900; margin-top:6px; }
+    table { width:100%; border-collapse:collapse; margin-top:10px; }
+    th, td { border-bottom:1px solid #e2e8f0; padding:10px 8px; text-align:left; font-size:12px; }
+    th { background:#f8fafc; }
+    .muted { color:#64748b; font-weight:700; }
+    .box { border:1px solid rgba(15,23,42,0.12); border-radius:12px; padding:12px; margin-top:14px; }
+    @media print { button { display:none; } }
+</style>
+</head>
+<body>
+    <h1>Reporte General</h1>
+    <div class="sub">Sistema Inmobiliario Corvacruz • Período recaudación: <strong>${s || '—'}</strong> a <strong>${e || '—'}</strong></div>
+    <button onclick="window.print()" style="padding:10px 14px; border-radius:10px; border:1px solid #cbd5e1; background:#0f172a; color:#fff; font-weight:900; cursor:pointer;">Imprimir / Guardar como PDF</button>
+
+    <div class="kpis">
+        <div class="kpi"><div class="t">Total Terrenos</div><div class="v">${total}</div></div>
+        <div class="kpi"><div class="t">Disponibles</div><div class="v">${disp}</div></div>
+        <div class="kpi"><div class="t">Reservados</div><div class="v">${reserv}</div></div>
+        <div class="kpi"><div class="t">Vendidos</div><div class="v">${vend}</div></div>
+        <div class="kpi"><div class="t">Recaudado (Ref. Bs)</div><div class="v">Bs ${fmtNumber2(rec)}</div></div>
+    </div>
+
+    <div class="box">
+        <div style="font-weight:900;">Deudas (Ref. Bs)</div>
+        <div class="muted" style="margin-top:6px;">Total pendiente: <strong>Bs ${fmtNumber2(deudaTotalRef)}</strong> • Vencido: <strong>Bs ${fmtNumber2(deudaVencidaRef)}</strong></div>
+    </div>
+
+    <div class="box">
+        <div style="font-weight:900;">Cobranzas pendientes (primeras 25)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Terreno</th>
+                    <th>Cuota</th>
+                    <th>Vencimiento</th>
+                    <th>Monto</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${
+                    (function(){
+                        const items = buildCobranzasListFiltered().slice(0, 25);
+                        return items.map(it => {
+                            const v = it.v, c = it.pendente;
+                            const dd = it.days;
+                            const estado = it.overdue ? ((dd === 0) ? 'VENCE HOY' : 'VENCIDA') : (it.near ? 'PRONTO' : 'PENDIENTE');
+                            return `
+                                <tr>
+                                    <td>${(v.cliente || '')}</td>
+                                    <td>${(v.landNome || '')}</td>
+                                    <td>${c.n}/${(v.cuotas || []).length}</td>
+                                    <td>${c.venc}</td>
+                                    <td>${safeCurrency(v.moneda)} ${fmtNumber2(c.valor)}</td>
+                                    <td>${estado}</td>
+                                </tr>
+                            `;
+                        }).join('');
+                    })()
+                }
+            </tbody>
+        </table>
+        <div class="muted" style="margin-top:8px;">Nota: Para ver el detalle completo, use el módulo “Ventas”.</div>
+    </div>
+</body>
+</html>
+                `;
+
+                const w = window.open('', '_blank', 'noopener,noreferrer');
+                if (!w) { alert('El navegador bloqueó la ventana emergente.'); return; }
+                w.document.open();
+                w.document.write(html);
+                w.document.close();
+                w.focus();
+            } catch (e) {
+                console.error('exportReporteGeneralPDF error', e);
+                alert('No se pudo generar el PDF.');
+            }
+        };
+
     </script>
 </body>
 </html>
