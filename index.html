@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Inmobiliario - Corvac (Versión Completa)</title>
+    <title>Sistema Inmobiliario - Corvac (Versión Final Corregida)</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.1"></script>
@@ -34,7 +34,7 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* Evita scroll en el body */
+            overflow: hidden;
         }
 
         /* --- Utilidades --- */
@@ -186,9 +186,11 @@
 
         /* --- Galería y PDF --- */
         .gallery { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        
+        /* Caja de Previsualización */
         .img-preview-box {
             position: relative;
-            width: 90px; height: 90px;
+            width: 100px; height: 100px;
             border: 1px solid #ddd;
             background: #fff;
             border-radius: 4px;
@@ -196,9 +198,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-direction: column;
         }
         .img-preview-box img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
-        .pdf-icon { font-size: 40px; color: var(--danger); }
+        .pdf-icon { font-size: 40px; color: var(--danger); margin-bottom: 5px; }
+        .file-name { font-size: 10px; color: #666; text-align: center; width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 2px;}
         
         .btn-del-img {
             position: absolute; top: 0; right: 0;
@@ -211,36 +215,49 @@
         }
         
         /* Miniaturas en la Tabla */
-        .thumb-small {
+        .thumb-container {
             width: 60px; height: 60px;
+            position: relative;
+            cursor: pointer;
+        }
+        .thumb-small {
+            width: 100%; height: 100%;
             object-fit: cover;
             border-radius: 4px;
             border: 1px solid #ddd;
-            cursor: pointer;
             background: #fff;
-            transition: transform 0.2s;
         }
-        .thumb-small:hover { transform: scale(3.5); position: relative; z-index: 100; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        
         .thumb-pdf {
-            width: 60px; height: 60px;
+            width: 100%; height: 100%;
             display: flex; align-items: center; justify-content: center;
             font-size: 24px; color: var(--danger);
             background: #fff0f0;
             border: 1px solid #ffcccc;
             border-radius: 4px;
-            cursor: pointer;
+        }
+        /* Contador de archivos (+2) */
+        .file-count {
+            position: absolute;
+            bottom: -5px; right: -5px;
+            background: var(--primary);
+            color: white;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 10px;
+            font-weight: bold;
         }
         
         /* Detalles */
         .img-full { width: 100%; max-height: 450px; object-fit: contain; background: #fafafa; border: 1px solid #eee; margin-bottom: 15px; }
         .doc-link {
-            display: block; padding: 10px;
-            background: #f8f9fa; border: 1px solid #ddd;
-            margin-bottom: 5px; border-radius: 4px;
-            color: #333; text-decoration: none; font-weight: 500;
+            display: flex; align-items: center; gap: 10px;
+            padding: 15px;
+            background: #fff; border: 1px solid #ddd; border-left: 5px solid var(--danger);
+            margin-bottom: 10px; border-radius: 4px;
+            color: #333; text-decoration: none; font-weight: 600;
+            transition: 0.2s;
         }
-        .doc-link:hover { background: #e9ecef; }
+        .doc-link:hover { background: #fff5f5; transform: translateX(5px); }
 
         /* --- Loader y Modales --- */
         #loader {
@@ -417,7 +434,7 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Img/Doc</th>
+                                    <th>Archivos</th>
                                     <th>Código</th>
                                     <th>Nombre</th>
                                     <th>Superficie</th>
@@ -529,7 +546,7 @@
                     <div class="input-group w-100"><label>1er Vencimiento</label><input type="date" id="v-data1" required></div>
                 </div>
                 <div class="live-calc-box">
-                    <h4>Cuota: <span id="live-result-text">0,00</span> <span id="lbl-moneda-venda" style="font-size:0.8rem"></span></h4>
+                    <h4>Cuota Mensual: <span id="live-result-text">0,00</span> <span id="lbl-moneda-venda" style="font-size:0.8rem"></span></h4>
                 </div>
                 <div class="text-right" style="margin-top:20px;">
                     <button type="button" onclick="closeModal('modal-venda')" class="btn btn-g">Cancelar</button>
@@ -551,16 +568,16 @@
                 
                 <div style="text-align:center; margin:15px 0; background:#f9f9f9; padding:15px; border-radius:5px;">
                     <h2 id="p-valor-display" style="color:var(--success)"></h2>
-                    <small>Valor Original</small>
+                    <small>Valor Original de la Cuota</small>
                 </div>
                 
                 <div class="input-group">
-                    <label>Monto a Pagar</label>
+                    <label>Monto a Pagar (Amortizable)</label>
                     <input type="number" id="p-valor-real" step="0.01" required style="font-size:1.3rem; font-weight:bold; color:green; text-align:center;" oninput="window.showPreview(this, 'preview-p-valor', document.getElementById('p-valor-display').innerText.substring(0,3))">
                     <span id="preview-p-valor" class="number-preview" style="width:100%; text-align:center; margin-top:5px;">0,00</span>
                 </div>
                 
-                <div id="div-tc" class="input-group hidden" style="background:#fff3cd; padding:10px;">
+                <div id="div-tc" class="input-group hidden" style="background:#fff3cd; padding:10px; border-radius:5px;">
                     <label>T.C. Día (Bs/USD)</label>
                     <input type="number" id="p-tc" value="6.96" step="0.01">
                 </div>
@@ -586,7 +603,7 @@
                 
                 <div class="input-group"><label>Nombre / Cliente</label><input type="text" id="e-nome"></div>
                 <div class="input-group"><label>Valor / Precio</label><input type="number" id="e-valor" step="0.01"></div>
-                <div class="input-group"><label>Notas</label><textarea id="e-notas" rows="3"></textarea></div>
+                <div class="input-group"><label>Notas / Observaciones</label><textarea id="e-notas" rows="3"></textarea></div>
                 
                 <label><strong>Archivos (Fotos/PDF):</strong></label>
                 <div id="e-gallery" class="gallery"></div>
@@ -632,7 +649,7 @@
 
         let terrenos = [], vendas = [], user = null;
 
-        // Permisos
+        // Permisos de Seguridad
         function getPermissions() {
             if (!user) return [];
             return [
@@ -697,7 +714,6 @@
                     const file = filesInput.files[i];
                     const res = await storage.createFile(BUCKET_ID, ID.unique(), file, getPermissions());
                     const fileUrl = storage.getFileView(BUCKET_ID, res.$id);
-                    // Guardamos la URL, el tipo y el nombre
                     filesData.push({
                         url: fileUrl,
                         isPdf: file.name.toLowerCase().endsWith('.pdf'),
@@ -729,15 +745,32 @@
             terrenos.forEach(t => {
                 if (!t.nome.toLowerCase().includes(f) && !t.codigo.toLowerCase().includes(f)) return;
                 
-                // Miniatura Inteligente
+                // Miniatura Inteligente: Prioriza Imagen sobre PDF para la portada
                 let imgHtml = '<div style="width:60px;height:60px;background:#eee;border-radius:4px;"></div>';
+                let fileCount = 0;
+                
                 if(t.fotos && t.fotos.length > 0) {
-                    let first = t.fotos[0];
-                    let url = (typeof first === 'string') ? first : first.url;
-                    let isPdf = (typeof first === 'object' && first.isPdf);
+                    fileCount = t.fotos.length;
+                    // Intenta buscar la primera que NO sea PDF (es decir, una foto)
+                    // Si no encuentra, usa el primero (que será PDF)
+                    let cover = t.fotos.find(file => {
+                        return (typeof file === 'object' && !file.isPdf) || (typeof file === 'string');
+                    }) || t.fotos[0];
+
+                    // Determinar si es PDF o IMG
+                    let url = (typeof cover === 'string') ? cover : cover.url;
+                    let isPdf = (typeof cover === 'object' && cover.isPdf);
+
+                    if(isPdf) {
+                        imgHtml = `<div class="thumb-container" onclick="verDetalles('${t.$id}', 'land')"><div class="thumb-pdf"><i class="fas fa-file-pdf"></i></div></div>`;
+                    } else {
+                        imgHtml = `<div class="thumb-container" onclick="verDetalles('${t.$id}', 'land')"><img src="${url}" class="thumb-small"></div>`;
+                    }
                     
-                    if(isPdf) imgHtml = `<div class="thumb-pdf" onclick="verDetalles('${t.$id}', 'land')"><i class="fas fa-file-pdf"></i></div>`;
-                    else imgHtml = `<img src="${url}" class="thumb-small" onclick="verDetalles('${t.$id}', 'land')">`;
+                    // Añadir contador si hay más de 1
+                    if(fileCount > 1) {
+                        imgHtml = imgHtml.replace('</div></div>', `<span class="file-count">+${fileCount}</span></div></div>`);
+                    }
                 }
 
                 let btn = t.estado === 'Disponible' ? `<button class="btn btn-p" style="padding:5px 10px" onclick="openVenda('${t.$id}')">Vender</button>` : `<span class="status-badge status-vendido">Vendido</span>`;
@@ -852,8 +885,9 @@
             while(saldo > 0.1 && i < v.cuotas.length) {
                 let c = v.cuotas[i];
                 if(c.pago) { i++; continue; }
-                if(saldo >= c.valor) { saldo -= c.valor; c.pago = true; c.valor_pago = c.valor; c.tc = tc; c.data_pago = dataPago; }
-                else { c.valor -= saldo; saldo = 0; }
+                if(saldo >= c.valor) { 
+                    saldo -= c.valor; c.pago = true; c.valor_pago = c.valor; c.tc = tc; c.data_pago = dataPago;
+                } else { c.valor -= saldo; saldo = 0; }
                 i++;
             }
             await db.updateDocument(DB_ID, COL_VENDAS, vId, { dados: JSON.stringify(v) });
@@ -872,7 +906,7 @@
             if(d.fotos) d.fotos.forEach((u, i) => {
                 let url = (typeof u === 'string') ? u : u.url;
                 let isPdf = (typeof u === 'object' && u.isPdf);
-                let content = isPdf ? `<i class="fas fa-file-pdf pdf-icon"></i>` : `<img src="${url}" onclick="window.open('${url}')">`;
+                let content = isPdf ? `<i class="fas fa-file-pdf pdf-icon"></i><div class="file-name">${u.name}</div>` : `<img src="${url}" onclick="window.open('${url}')">`;
                 g.innerHTML += `<div class="img-preview-box">${content}<div class="btn-del-img" onclick="remFoto('${id}', '${type}', ${i})">X</div></div>`;
             });
             document.getElementById('modal-edit').classList.remove('hidden');
@@ -892,7 +926,8 @@
             const id = document.getElementById('e-id').value, type = document.getElementById('e-type').value;
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
             const newFiles = await uploadFiles(document.getElementById('e-new-files'));
-            if(!d.fotos) d.fotos = []; d.fotos = [...d.fotos, ...newFiles];
+            if(!d.fotos) d.fotos = [];
+            d.fotos = [...d.fotos, ...newFiles];
             if(type === 'land') { d.nome = document.getElementById('e-nome').value; d.precio = parseFloat(document.getElementById('e-valor').value); d.notas = document.getElementById('e-notas').value; }
             else { d.cliente = document.getElementById('e-nome').value; }
             await db.updateDocument(DB_ID, (type==='land'?COL_TERRENOS:COL_VENDAS), id, { dados: JSON.stringify(d) });
@@ -911,16 +946,15 @@
             loadData();
         }
 
-        // --- DETALLES INTELIGENTES (PDF LINK) ---
         window.verDetalles = (id, type) => {
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
-            let mediaHtml = '';
+            let mediaHtml = ''; 
             if(d.fotos) d.fotos.forEach(u => {
                 let url = (typeof u === 'string') ? u : u.url;
                 let isPdf = (typeof u === 'object' && u.isPdf);
-                let name = (typeof u === 'object' && u.name) ? u.name : 'Documento';
+                let name = (typeof u === 'object' && u.name) ? u.name : 'Documento PDF';
                 
-                if(isPdf) mediaHtml += `<a href="${url}" target="_blank" class="doc-link"><i class="fas fa-file-pdf" style="color:red"></i> ${name}</a>`;
+                if(isPdf) mediaHtml += `<a href="${url}" target="_blank" class="doc-link"><i class="fas fa-file-pdf" style="color:var(--danger);font-size:1.2rem;"></i> <span>${name}</span></a>`;
                 else mediaHtml += `<img src="${url}" class="img-full" onclick="window.open('${url}')">`;
             });
             const c = document.getElementById('detalles-contenido');
@@ -931,7 +965,13 @@
         }
 
         // --- UTILS ---
-        window.nav = (v) => { document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden')); document.getElementById('view-'+v).classList.remove('hidden'); document.querySelectorAll('.menu button').forEach(b => b.classList.remove('active')); document.getElementById('btn-'+v).classList.add('active'); if(v==='listado') renderTerrenos(); if(v==='ventas') renderVendas(); }
+        window.nav = (v) => { 
+            document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden')); 
+            document.getElementById('view-'+v).classList.remove('hidden'); 
+            document.querySelectorAll('.menu button').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-'+v).classList.add('active');
+            if(v==='listado') renderTerrenos(); if(v==='ventas') renderVendas(); 
+        }
         window.switchVendas=(t)=>{ document.getElementById('tab-vendas-resumo').classList.add('hidden'); document.getElementById('tab-vendas-hist').classList.add('hidden'); document.getElementById('tab-vendas-completos').classList.add('hidden'); document.getElementById('tab-vendas-'+t).classList.remove('hidden'); }
         window.closeModal=(id)=>document.getElementById(id).classList.add('hidden');
         
