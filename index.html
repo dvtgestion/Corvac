@@ -667,9 +667,9 @@
                 <div id="view-ventas" class="hidden">
                     <div class="card">
                         <div class="flex gap-2" style="margin-bottom:20px;">
-                            <button onclick="switchVendas('resumo')" class="btn btn-p"><i class="fas fa-file-invoice-dollar"></i> Cobranzas</button>
-                            <button onclick="switchVendas('completos')" class="btn btn-s"><i class="fas fa-check-circle"></i> Completados</button>
-                            <button onclick="switchVendas('hist')" class="btn btn-g"><i class="fas fa-history"></i> Editar / Historial</button>
+                            <button onclick="switchVendas('resumo')" class="btn btn-p">Cobranzas</button>
+                            <button onclick="switchVendas('completos')" class="btn btn-s">Completados</button>
+                            <button onclick="switchVendas('hist')" class="btn btn-g">Editar / Historial</button>
                             <button onclick="loadData()" class="btn btn-w" title="Recargar"><i class="fas fa-sync"></i></button>
                         </div>
 
@@ -735,7 +735,7 @@
             </div>
             <form id="form-venda">
                 <input type="hidden" id="v-land-id">
-                <p style="background:#eef; padding:15px; border-radius:5px; margin-bottom:15px; color:#444;">Terreno: <strong id="v-land-info"></strong></p>
+                <p style="background:#eef; padding:15px; border-radius:5px; margin-bottom:15px;">Terreno: <strong id="v-land-info"></strong></p>
                 <div class="flex gap-2">
                     <div class="input-group w-100"><label>Cliente</label><input type="text" id="v-cliente" required></div>
                     <div class="input-group w-100"><label>CI/Doc</label><input type="text" id="v-ci"></div>
@@ -848,7 +848,6 @@
     </div>
 
     <script>
-        // --- Conexión con Appwrite ---
         const { Client, Account, Databases, Storage, ID, Query, Permission, Role } = Appwrite;
         const client = new Client();
 
@@ -903,7 +902,7 @@
             const pass = document.getElementById('password').value;
             try { await account.createEmailPasswordSession(email, pass); checkSession(); }
             catch (error) {
-                // Si la sesión ya existe, solo entramos
+                // Si ya existe sesión, solo entramos
                 if (error.message.includes('session is active')) {
                     checkSession();
                     return;
@@ -967,13 +966,12 @@
             terrenos.forEach(t => {
                 if (!t.nome.toLowerCase().includes(f) && !t.codigo.toLowerCase().includes(f)) return;
                 
-                // Miniatura Inteligente: Prioriza Imagen sobre PDF para la portada
+                // LÓGICA DE MINIATURA INTELIGENTE
                 let imgHtml = '<div style="width:60px;height:60px;background:#eee;border-radius:4px;"></div>';
                 let fileCount = 0;
                 
                 if(t.fotos && t.fotos.length > 0) {
                     fileCount = t.fotos.length;
-                    
                     // BUSCA LA PRIMERA IMAGEN REAL (NO PDF) PARA USAR DE PORTADA
                     let cover = t.fotos.find(file => {
                         return (typeof file === 'object' && !file.isPdf) || (typeof file === 'string');
@@ -1127,7 +1125,10 @@
             if(d.fotos) d.fotos.forEach((u, i) => {
                 let url = (typeof u === 'string') ? u : u.url;
                 let isPdf = (typeof u === 'object' && u.isPdf);
-                let content = isPdf ? `<i class="fas fa-file-pdf pdf-icon"></i><div class="file-name">${u.name}</div>` : `<img src="${url}" onclick="window.open('${url}')">`;
+                // PDF Clickable en Edición
+                let content = isPdf ? 
+                    `<i class="fas fa-file-pdf pdf-icon" onclick="window.open('${url}', '_blank')"></i><div class="file-name">${u.name}</div>` : 
+                    `<img src="${url}" onclick="window.open('${url}', '_blank')">`;
                 g.innerHTML += `<div class="img-preview-box">${content}<div class="btn-del-img" onclick="remFoto('${id}', '${type}', ${i})">X</div></div>`;
             });
             document.getElementById('modal-edit').classList.remove('hidden');
@@ -1147,7 +1148,8 @@
             const id = document.getElementById('e-id').value, type = document.getElementById('e-type').value;
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
             const newFiles = await uploadFiles(document.getElementById('e-new-files'));
-            if(!d.fotos) d.fotos = []; d.fotos = [...d.fotos, ...newFiles];
+            if(!d.fotos) d.fotos = [];
+            d.fotos = [...d.fotos, ...newFiles];
             if(type === 'land') { d.nome = document.getElementById('e-nome').value; d.precio = parseFloat(document.getElementById('e-valor').value); d.notas = document.getElementById('e-notas').value; }
             else { d.cliente = document.getElementById('e-nome').value; }
             await db.updateDocument(DB_ID, (type==='land'?COL_TERRENOS:COL_VENDAS), id, { dados: JSON.stringify(d) });
