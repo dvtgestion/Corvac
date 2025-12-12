@@ -889,6 +889,28 @@
                 font-size: clamp(1.0rem, 7.2vw, 1.55rem);
             }
         }
+    
+        /* --- Badges / Moneda --- */
+        .currency-badge {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: #eef3ff;
+            color: var(--primary);
+            border: 1px solid rgba(44,62,80,0.18);
+            vertical-align: middle;
+        }
+
+        /* Venta: selector de moneda y TC */
+        #v-tc-box {
+            border: 1px solid #ffe8a1;
+            border-left: 5px solid var(--warning);
+            border-radius: 6px;
+        }
+
     </style>
 </head>
 <body>
@@ -1310,7 +1332,7 @@
                 <input type="hidden" id="e-id"><input type="hidden" id="e-type">
 
                 <div class="input-group"><label>Nombre / Cliente</label><input type="text" id="e-nome"></div>
-                <div class="input-group"><label>Valor / Precio</label><input type="number" id="e-valor" step="0.01"></div>
+                <div class="input-group"><label>Valor / Precio <span id="e-moneda-badge" class="currency-badge">-</span></label><input type="number" id="e-valor" step="0.01"></div>
                 <div class="input-group"><label>Notas / Observaciones</label><textarea id="e-notas" rows="3"></textarea></div>
 
                 <label style="font-weight:950; color:#0f172a;"><strong>Archivos (Fotos/PDF):</strong></label>
@@ -1369,6 +1391,18 @@
         const BUCKET_ID = 'bucket_fotos';
 
         let terrenos = [], vendas = [], user = null;
+
+        // Contexto de Venta (moneda/TC)
+        let vendaCtx = {
+            landId: null,
+            landMoneda: null,
+            landPrecio: null,
+            payMoneda: null,
+            tc: 6.96,
+            manualTotal: false,
+            manualEntrada: false,
+            programmatic: false
+        };
 
         let terrenoFilePool = [];
         let terrenoPoolObjectUrls = new Map();
@@ -1929,6 +1963,121 @@
             window.open(u, '_blank', 'noopener,noreferrer');
         };
 
+        // ------------------------------
+        // VENTA: MONEDA DE PAGO + TIPO DE CAMBIO (para terrenos en USD)
+        // ------------------------------
+        function convertAmountCurrency(val, fromCur, toCur, tc) {
+            const v = parseFloat(val);
+            if (isNaN(v)) return 0;
+            const t = parseFloat(tc);
+            if (!fromCur || !toCur || fromCur === toCur) return v;
+            if (fromCur === 'USD' && toCur === 'BOB') return v * (isNaN(t) || t <= 0 ? 1 : t);
+            if (fromCur === 'BOB' && toCur === 'USD') return v / (isNaN(t) || t <= 0 ? 1 : t);
+            return v;
+        }
+
+        function refreshVendaMoneyUI() {
+            const moeda = String(document.getElementById('lbl-moneda-venda').innerText || 'BOB');
+            window.calcLive();
+            window.showPreview(document.getElementById('v-total'), 'preview-v-total', moeda);
+            window.showPreview(document.getElementById('v-entrada'), 'preview-v-entrada', moeda);
+        }
+
+        function setupVendaManualGuards() {
+            const totalEl = document.getElementById('v-total');
+            const entEl = document.getElementById('v-entrada');
+            if (totalEl && !totalEl.dataset.boundVendaManual) {
+                totalEl.dataset.boundVendaManual = '1';
+                totalEl.addEventListener('input', () => {
+                    if (vendaCtx.programmatic) return;
+                    vendaCtx.manualTotal = true;
+                });
+            }
+            if (entEl && !entEl.dataset.boundVendaManual) {
+                entEl.dataset.boundVendaManual = '1';
+                entEl.addEventListener('input', () => {
+                    if (vendaCtx.programmatic) return;
+                    vendaCtx.manualEntrada = true;
+                });
+            }
+        }
+
+        window.onMonedaPagoChange = () => {
+            const tId = document.getElementById('v-land-id').value;
+            const terreno = terrenos.find(x => x.$id === tId);
+            if (!terreno) return;
+
+            const sel = document.getElementById('v-moneda-pago');
+            const tcBox = document.getElementById('v-tc-box');
+            const tcEl = document.getElementById('v-tc');
+
+            const fromCur = String(vendaCtx.payMoneda || terreno.moneda || 'USD');
+            const toCur = String(sel.value || 'USD');
+
+            const tc = parseFloat(tcEl.value) || 0;
+            vendaCtx.tc = tc > 0 ? tc : vendaCtx.tc;
+
+            // Mostrar/ocultar TC si el pago es en BOB
+            if (toCur === 'BOB') tcBox.classList.remove('hidden');
+            else tcBox.classList.add('hidden');
+
+            vendaCtx.programmatic = true;
+
+            // Total
+            if (vendaCtx.manualTotal) {
+                const curVal = parseFloat(document.getElementById('v-total').value) || 0;
+                document.getElementById('v-total').value = convertAmountCurrency(curVal, fromCur, toCur, vendaCtx.tc).toFixed(2);
+            } else {
+                // Auto: usa precio original del terreno (USD) y TC si corresponde
+                if (terreno.moneda === 'USD' && toCur === 'BOB') {
+                    document.getElementById('v-total').value = (parseFloat(terreno.precio) * (vendaCtx.tc || 1)).toFixed(2);
+                } else {
+                    document.getElementById('v-total').value = (parseFloat(terreno.precio) || 0).toFixed(2);
+                }
+            }
+
+            // Entrada
+            if (vendaCtx.manualEntrada) {
+                const curEnt = parseFloat(document.getElementById('v-entrada').value) || 0;
+                document.getElementById('v-entrada').value = convertAmountCurrency(curEnt, fromCur, toCur, vendaCtx.tc).toFixed(2);
+            } else {
+                document.getElementById('v-entrada').value = "0.00";
+            }
+
+            document.getElementById('lbl-moneda-venda').innerText = toCur;
+
+            vendaCtx.payMoneda = toCur;
+            vendaCtx.programmatic = false;
+
+            refreshVendaMoneyUI();
+        };
+
+        window.onTipoCambioInput = () => {
+            const tId = document.getElementById('v-land-id').value;
+            const terreno = terrenos.find(x => x.$id === tId);
+            if (!terreno) return;
+
+            const sel = document.getElementById('v-moneda-pago');
+            const tcEl = document.getElementById('v-tc');
+            const tc = parseFloat(tcEl.value) || 0;
+            if (tc > 0) vendaCtx.tc = tc;
+
+            // Solo aplica cuando el terreno es USD y el pago es BOB
+            if (terreno.moneda !== 'USD' || sel.value !== 'BOB') return;
+
+            // Recalcular automáticamente SOLO si el usuario no cambió manualmente el total
+            if (!vendaCtx.manualTotal) {
+                vendaCtx.programmatic = true;
+                document.getElementById('v-total').value = (parseFloat(terreno.precio) * (vendaCtx.tc || 1)).toFixed(2);
+                vendaCtx.programmatic = false;
+                refreshVendaMoneyUI();
+            } else {
+                // Si cambió manualmente, solo actualiza previews y cuota
+                refreshVendaMoneyUI();
+            }
+        };
+
+
         function getPermissions() {
             if (!user) return [];
             return [
@@ -2126,16 +2275,64 @@
 
         window.openVenda = (id) => {
             const t = terrenos.find(x => x.$id === id);
-            clearVendaFilePool();
+            if (!t) return;
+
+            // Preparar contexto
+            vendaCtx.landId = id;
+            vendaCtx.landMoneda = t.moneda;
+            vendaCtx.landPrecio = parseFloat(t.precio) || 0;
+            vendaCtx.tc = parseFloat(document.getElementById('v-tc')?.value) || vendaCtx.tc || 6.96;
+            vendaCtx.manualTotal = false;
+            vendaCtx.manualEntrada = false;
+            vendaCtx.programmatic = false;
+
+            // UI base
             document.getElementById('v-land-id').value = id;
             document.getElementById('v-land-info').innerText = `${t.codigo} - ${t.nome}`;
-            document.getElementById('lbl-moneda-venda').innerText = t.moneda;
-            document.getElementById('v-total').value = t.precio;
             document.getElementById('v-data1').value = new Date().toISOString().split('T')[0];
-            window.calcLive();
-            window.showPreview(document.getElementById('v-total'), 'preview-v-total', t.moneda);
-            window.showPreview(document.getElementById('v-entrada'), 'preview-v-entrada', t.moneda);
-            renderVendaFilePool();
+
+            // Moneda de pago: solo relevante cuando el terreno está en USD
+            const payBox = document.getElementById('v-pay-currency-box');
+            const paySel = document.getElementById('v-moneda-pago');
+            const tcBox = document.getElementById('v-tc-box');
+            const tcEl = document.getElementById('v-tc');
+
+            if (t.moneda === 'USD') {
+                payBox.classList.remove('hidden');
+                paySel.value = 'USD';
+                tcBox.classList.add('hidden');
+                // mantener último TC usado, por si el usuario luego elige BOB
+                if (tcEl) tcEl.value = (vendaCtx.tc || 6.96).toFixed(2);
+                document.getElementById('lbl-moneda-venda').innerText = 'USD';
+                vendaCtx.payMoneda = 'USD';
+                vendaCtx.programmatic = true;
+                document.getElementById('v-total').value = (parseFloat(t.precio) || 0).toFixed(2);
+                document.getElementById('v-entrada').value = "0.00";
+                vendaCtx.programmatic = false;
+            } else {
+                // Terreno en BOB: no tiene sentido elegir moneda; se vende en la misma
+                payBox.classList.add('hidden');
+                tcBox.classList.add('hidden');
+                if (paySel) paySel.value = t.moneda;
+                document.getElementById('lbl-moneda-venda').innerText = t.moneda;
+                vendaCtx.payMoneda = t.moneda;
+                vendaCtx.programmatic = true;
+                document.getElementById('v-total').value = (parseFloat(t.precio) || 0).toFixed(2);
+                document.getElementById('v-entrada').value = "0.00";
+                vendaCtx.programmatic = false;
+            }
+
+            // Reset de archivos de venta (pool)
+            if (typeof vendaFilePool !== 'undefined' && Array.isArray(vendaFilePool)) {
+                vendaFilePool.length = 0;
+                const list = document.getElementById('v-files-list');
+                if (list) list.innerHTML = '';
+                try { document.getElementById('v-files').value = ''; } catch (_) {}
+            }
+
+            setupVendaManualGuards();
+            refreshVendaMoneyUI();
+
             document.getElementById('modal-venda').classList.remove('hidden');
         };
 
@@ -2145,6 +2342,20 @@
 
             const tId = document.getElementById('v-land-id').value;
             const terreno = terrenos.find(x => x.$id === tId);
+
+
+            // Moneda de pago para esta venta (si el terreno está en USD, puedes vender en USD o en Bs)
+            let payMoneda = terreno ? (terreno.moneda || 'BOB') : 'BOB';
+            let tcVenta = null;
+            if (terreno && terreno.moneda === 'USD') {
+                const sel = document.getElementById('v-moneda-pago');
+                payMoneda = sel ? (sel.value || 'USD') : 'USD';
+                if (payMoneda === 'BOB') {
+                    const tcEl = document.getElementById('v-tc');
+                    const tc = tcEl ? parseFloat(tcEl.value) : NaN;
+                    tcVenta = (!isNaN(tc) && tc > 0) ? tc : null;
+                }
+            }
 
             const uploaded = await uploadFiles(vendaFilePool);
 
@@ -2167,8 +2378,12 @@
                 fotos: normalizeFotos(uploaded),
                 landId: tId,
                 landNome: terreno.nome,
-                moneda: terreno.moneda,
+                moneda: payMoneda,
+                moneda_original: terreno ? (terreno.moneda || null) : null,
+                precio_original: terreno ? (terreno.precio || null) : null,
+                tc_venta: tcVenta,
                 total: total,
+                total_ref_usd: (terreno && terreno.moneda === 'USD' && payMoneda === 'BOB' && tcVenta) ? (total / tcVenta) : null,
                 entrada: ent,
                 fecha_entrada: today,
                 cuotas: cuotas,
@@ -2494,7 +2709,14 @@
             document.getElementById('e-type').value = type;
             document.getElementById('e-nome').value = (type === 'land') ? d.nome : d.cliente;
             document.getElementById('e-valor').value = (type === 'land') ? d.precio : d.total;
-            document.getElementById('e-notas').value = (d.notas || '');
+            
+
+            const monedaBadge = document.getElementById('e-moneda-badge');
+            if (monedaBadge) {
+                const m = (type === 'land') ? (d.moneda || '-') : (d.moneda || '-');
+                monedaBadge.innerText = m;
+            }
+document.getElementById('e-notas').value = (d.notas || '');
 
             const g = document.getElementById('e-gallery');
             g.innerHTML = '';
