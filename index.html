@@ -905,7 +905,7 @@
         }
 
         /* Venta: selector de moneda y TC */
-        #v-tc-box {
+        #div-v-tc {
             border: 1px solid #ffe8a1;
             border-left: 5px solid var(--warning);
             border-radius: 6px;
@@ -1252,6 +1252,21 @@
                 </div>
 
                 <hr style="margin:14px 0; border:0; border-top:1px solid rgba(15,23,42,0.08);">
+                <!-- Moneda de Cobro -->
+                <div class="flex gap-2" style="margin-bottom:10px; flex-wrap:wrap;">
+                    <div class="input-group w-100">
+                        <label><i class="fas fa-coins"></i> Moneda de Cobro</label>
+                        <select id="v-pay-currency" onchange="onVendaCurrencyChange()">
+                            <option value="BOB">Bolivianos (Bs)</option>
+                            <option value="USD">Dólar ($us)</option>
+                        </select>
+                    </div>
+                    <div id="div-v-tc" class="input-group w-100 hidden" style="background:#fff3cd; padding:10px; border-radius:6px; border:1px solid #ffe69c;">
+                        <label><i class="fas fa-exchange-alt"></i> Tipo de Cambio (Bs/USD)</label>
+                        <input type="number" id="v-tc" value="6.96" step="0.01" oninput="onVendaCurrencyChange(true)">
+                    </div>
+                </div>
+
 
                 <div class="flex gap-2" style="flex-wrap:wrap;">
                     <div class="input-group w-100">
@@ -2007,8 +2022,8 @@
             const terreno = terrenos.find(x => x.$id === tId);
             if (!terreno) return;
 
-            const sel = document.getElementById('v-moneda-pago');
-            const tcBox = document.getElementById('v-tc-box');
+            const sel = document.getElementById('v-pay-currency');
+            const tcBox = document.getElementById('div-v-tc');
             const tcEl = document.getElementById('v-tc');
 
             const fromCur = String(vendaCtx.payMoneda || terreno.moneda || 'USD');
@@ -2057,7 +2072,7 @@
             const terreno = terrenos.find(x => x.$id === tId);
             if (!terreno) return;
 
-            const sel = document.getElementById('v-moneda-pago');
+            const sel = document.getElementById('v-pay-currency');
             const tcEl = document.getElementById('v-tc');
             const tc = parseFloat(tcEl.value) || 0;
             if (tc > 0) vendaCtx.tc = tc;
@@ -2254,7 +2269,7 @@
                 const imgHtml = `<div class="thumb-container" onclick="verDetalles('${t.$id}', 'land')">${thumbInner}${badge}</div>`;
 
                 let btn = t.estado === 'Disponible'
-                    ? `<button class="btn btn-p" style="padding:7px 10px; border-radius:12px;" onclick="openVenda('${t.$id}')">Vender</button>`
+                    ? `<button type="button" class="btn btn-p" style="padding:7px 10px; border-radius:12px;" onclick="event.stopPropagation(); openVenda('${t.$id}')">Vender</button>`
                     : `<span class="status-badge status-vendido"><i class="fas fa-lock"></i> Vendido</span>`;
 
                 b.innerHTML += `<tr>
@@ -2265,78 +2280,137 @@
                     <td>${t.moneda} ${new Intl.NumberFormat('es-BO').format(t.precio)}</td>
                     <td>${t.estado}</td>
                     <td style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button class="btn btn-g btn-sm" onclick="openEdit('${t.$id}', 'land')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); openEdit('${t.$id}', 'land')"><i class="fas fa-edit"></i></button>
                         ${btn}
-                        <button class="btn btn-d btn-sm" onclick="deleteItem('${t.$id}', 'land')"><i class="fas fa-trash"></i></button>
+                        <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${t.$id}', 'land')"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
             });
         }
 
-        window.openVenda = (id) => {
-            const t = terrenos.find(x => x.$id === id);
-            if (!t) return;
+        
+        // ------------------------------
+        // VENTAS
+        // ------------------------------
+        function safeCurrency(code){
+            const c = String(code || '').toUpperCase();
+            if (c === 'USD' || c === 'BOB') return c;
+            return 'BOB';
+        }
 
-            // Preparar contexto
-            vendaCtx.landId = id;
-            vendaCtx.landMoneda = t.moneda;
-            vendaCtx.landPrecio = parseFloat(t.precio) || 0;
-            vendaCtx.tc = parseFloat(document.getElementById('v-tc')?.value) || vendaCtx.tc || 6.96;
-            vendaCtx.manualTotal = false;
-            vendaCtx.manualEntrada = false;
-            vendaCtx.programmatic = false;
+        window._vendaLandMoneda = 'BOB';
+        window._vendaBaseTotal = 0;
+        window._vendaBaseEntrada = 0;
+        window._vendaLastPayCurrency = 'BOB';
 
-            // UI base
-            document.getElementById('v-land-id').value = id;
-            document.getElementById('v-land-info').innerText = `${t.codigo} - ${t.nome}`;
-            document.getElementById('v-data1').value = new Date().toISOString().split('T')[0];
+        window.onVendaCurrencyChange = (forceRecalc = false) => {
+            try {
+                const sel = document.getElementById('v-pay-currency');
+                const divTc = document.getElementById('div-v-tc');
+                const inputTc = document.getElementById('v-tc');
+                const landMoneda = safeCurrency(window._vendaLandMoneda);
+                const payMoneda = safeCurrency(sel ? sel.value : landMoneda);
 
-            // Moneda de pago: solo relevante cuando el terreno está en USD
-            const payBox = document.getElementById('v-pay-currency-box');
-            const paySel = document.getElementById('v-moneda-pago');
-            const tcBox = document.getElementById('v-tc-box');
-            const tcEl = document.getElementById('v-tc');
+                let tc = parseFloat(inputTc ? inputTc.value : '6.96');
+                if (!isFinite(tc) || tc <= 0) tc = 6.96;
 
-            if (t.moneda === 'USD') {
-                payBox.classList.remove('hidden');
-                paySel.value = 'USD';
-                tcBox.classList.add('hidden');
-                // mantener último TC usado, por si el usuario luego elige BOB
-                if (tcEl) tcEl.value = (vendaCtx.tc || 6.96).toFixed(2);
-                document.getElementById('lbl-moneda-venda').innerText = 'USD';
-                vendaCtx.payMoneda = 'USD';
-                vendaCtx.programmatic = true;
-                document.getElementById('v-total').value = (parseFloat(t.precio) || 0).toFixed(2);
-                document.getElementById('v-entrada').value = "0.00";
-                vendaCtx.programmatic = false;
-            } else {
-                // Terreno en BOB: no tiene sentido elegir moneda; se vende en la misma
-                payBox.classList.add('hidden');
-                tcBox.classList.add('hidden');
-                if (paySel) paySel.value = t.moneda;
-                document.getElementById('lbl-moneda-venda').innerText = t.moneda;
-                vendaCtx.payMoneda = t.moneda;
-                vendaCtx.programmatic = true;
-                document.getElementById('v-total').value = (parseFloat(t.precio) || 0).toFixed(2);
-                document.getElementById('v-entrada').value = "0.00";
-                vendaCtx.programmatic = false;
+                const showTc = (landMoneda === 'USD' && payMoneda === 'BOB');
+                if (divTc) divTc.classList.toggle('hidden', !showTc);
+
+                const totalEl = document.getElementById('v-total');
+                const entEl = document.getElementById('v-entrada');
+
+                if (!totalEl || !entEl) return;
+
+                // Atualiza base quando alterna moeda
+                if (landMoneda === 'USD') {
+                    if (payMoneda === 'USD') {
+                        if (window._vendaLastPayCurrency === 'BOB') {
+                            const curT = parseFloat(totalEl.value) || 0;
+                            const curE = parseFloat(entEl.value) || 0;
+                            window._vendaBaseTotal = tc > 0 ? (curT / tc) : curT;
+                            window._vendaBaseEntrada = tc > 0 ? (curE / tc) : curE;
+                        }
+                        totalEl.value = (window._vendaBaseTotal || 0).toFixed(2);
+                        entEl.value = (window._vendaBaseEntrada || 0).toFixed(2);
+                    } else {
+                        if (window._vendaLastPayCurrency === 'USD') {
+                            window._vendaBaseTotal = parseFloat(totalEl.value) || 0;
+                            window._vendaBaseEntrada = parseFloat(entEl.value) || 0;
+                        }
+                        if (forceRecalc || window._vendaLastPayCurrency !== 'BOB') {
+                            totalEl.value = ((window._vendaBaseTotal || 0) * tc).toFixed(2);
+                            entEl.value = ((window._vendaBaseEntrada || 0) * tc).toFixed(2);
+                        }
+                    }
+                } else {
+                    // Terreno em BOB: venda sempre em BOB
+                    if (sel) sel.value = 'BOB';
+                    if (divTc) divTc.classList.add('hidden');
+                }
+
+                window._vendaLastPayCurrency = payMoneda;
+
+                const lbl = document.getElementById('lbl-moneda-venda');
+                if (lbl) lbl.innerText = payMoneda;
+
+                window.calcLive();
+                window.showPreview(document.getElementById('v-total'), 'preview-v-total', payMoneda);
+                window.showPreview(document.getElementById('v-entrada'), 'preview-v-entrada', payMoneda);
+            } catch (err) {
+                console.error('onVendaCurrencyChange error', err);
             }
-
-            // Reset de archivos de venta (pool)
-            if (typeof vendaFilePool !== 'undefined' && Array.isArray(vendaFilePool)) {
-                vendaFilePool.length = 0;
-                const list = document.getElementById('v-files-list');
-                if (list) list.innerHTML = '';
-                try { document.getElementById('v-files').value = ''; } catch (_) {}
-            }
-
-            setupVendaManualGuards();
-            refreshVendaMoneyUI();
-
-            document.getElementById('modal-venda').classList.remove('hidden');
         };
 
-        document.getElementById('form-venda').addEventListener('submit', async (e) => {
+        function openVenda(id) {
+            try {
+                const t = terrenos.find(x => x.$id === id);
+                if (!t) { alert('Terreno no encontrado.'); return; }
+
+                const landMoneda = safeCurrency(t.moneda || 'BOB');
+
+                window._vendaLandMoneda = landMoneda;
+                window._vendaBaseTotal = Number(t.precio) || 0;
+                window._vendaBaseEntrada = 0;
+                window._vendaLastPayCurrency = landMoneda;
+
+                document.getElementById('v-land-id').value = id;
+                document.getElementById('v-land-info').innerText = `${t.codigo} - ${t.nome}`;
+
+                const sel = document.getElementById('v-pay-currency');
+                if (sel) {
+                    if (landMoneda === 'USD') {
+                        sel.disabled = false;
+                        sel.innerHTML = `
+                            <option value="USD">Dólar ($us)</option>
+                            <option value="BOB">Bolivianos (Bs)</option>
+                        `;
+                        sel.value = 'USD';
+                    } else {
+                        sel.disabled = true;
+                        sel.innerHTML = `<option value="BOB">Bolivianos (Bs)</option>`;
+                        sel.value = 'BOB';
+                    }
+                }
+
+                document.getElementById('v-total').value = (window._vendaBaseTotal || 0).toFixed(2);
+                document.getElementById('v-entrada').value = (window._vendaBaseEntrada || 0).toFixed(2);
+                document.getElementById('v-data1').value = new Date().toISOString().split('T')[0];
+
+                try { clearVendaFilePool(); } catch (_) {}
+                try { renderVendaFilePool(); } catch (_) {}
+
+                document.getElementById('modal-venda').classList.remove('hidden');
+
+                window.onVendaCurrencyChange(true);
+            } catch (err) {
+                console.error('openVenda error', err);
+                alert('Error abriendo venta: ' + (err && err.message ? err.message : err));
+            }
+        }
+        window.openVenda = openVenda;
+
+document.getElementById('form-venda').addEventListener('submit', async (e) => {
             e.preventDefault();
             document.getElementById('loader').classList.remove('hidden');
 
@@ -2348,7 +2422,7 @@
             let payMoneda = terreno ? (terreno.moneda || 'BOB') : 'BOB';
             let tcVenta = null;
             if (terreno && terreno.moneda === 'USD') {
-                const sel = document.getElementById('v-moneda-pago');
+                const sel = document.getElementById('v-pay-currency');
                 payMoneda = sel ? (sel.value || 'USD') : 'USD';
                 if (payMoneda === 'BOB') {
                     const tcEl = document.getElementById('v-tc');
@@ -2606,8 +2680,8 @@
                     <td>${v.landNome}</td>
                     <td>${v.moneda} ${new Intl.NumberFormat('es-BO').format(v.total)}</td>
                     <td style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button class="btn btn-w btn-sm" onclick="openEdit('${v.$id}', 'sale')"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-d btn-sm" onclick="deleteItem('${v.$id}', 'sale')"><i class="fas fa-trash"></i></button>
+                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
 
@@ -2618,7 +2692,7 @@
                         <td>${v.landNome}</td>
                         <td style="color:var(--success);font-weight:950">${v.moneda} ${new Intl.NumberFormat('es-BO').format(v.total)}</td>
                         <td><span class="status-badge status-disponible"><i class="fas fa-check"></i> PAGADO</span></td>
-                        <td><button class="btn btn-g btn-sm" onclick="openEdit('${v.$id}', 'sale')">Ver</button></td>
+                        <td><button class="btn btn-g btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')">Ver</button></td>
                     </tr>`;
                 }
             });
@@ -2713,8 +2787,10 @@
 
             const monedaBadge = document.getElementById('e-moneda-badge');
             if (monedaBadge) {
-                const m = (type === 'land') ? (d.moneda || '-') : (d.moneda || '-');
-                monedaBadge.innerText = m;
+                const mRaw = (type === 'land')
+                    ? (d.moneda || 'BOB')
+                    : (d.moneda || d.moneda_pago || d.moneda_base || 'BOB');
+                monedaBadge.innerText = safeCurrency(mRaw);
             }
 document.getElementById('e-notas').value = (d.notas || '');
 
