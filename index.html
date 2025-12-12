@@ -771,6 +771,7 @@
             font-weight: 900;
             transition: 0.18s ease;
             box-shadow: 0 10px 26px rgba(0,0,0,0.06);
+            cursor: pointer;
         }
 
         .doc-link:hover {
@@ -881,7 +882,7 @@
         }
         .hint-box small { display:block; margin-top:4px; font-weight:700; color:#334155; opacity:0.85; }
 
-        /* NUEVO: panel mini reportes */
+        /* NUEVO: panel mini reportes (ya no se usa en pantalla, se mantiene por compatibilidad) */
         .reports-row {
             display:flex;
             gap:10px;
@@ -889,6 +890,25 @@
             align-items:center;
             justify-content:flex-end;
             margin-left:auto;
+        }
+
+        /* NUEVO: visor interno de archivos (PDF/Imagen) con X y Descargar */
+        .fileview-frame {
+            width: 100%;
+            height: 72vh;
+            border: 0;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.92);
+            box-shadow: 0 10px 26px rgba(0,0,0,0.06);
+        }
+        .fileview-img {
+            width: 100%;
+            max-height: 72vh;
+            object-fit: contain;
+            border-radius: 14px;
+            background: rgba(248,250,252,0.9);
+            border: 1px solid rgba(15,23,42,0.06);
+            box-shadow: 0 10px 26px rgba(0,0,0,0.06);
         }
 
         @media (max-width: 860px) {
@@ -1047,7 +1067,7 @@
                 <div class="flex items-center" style="gap:12px; flex-wrap:wrap;">
                     <span id="user-email-display" style="font-weight:900; color:#334155;"></span>
 
-                    <!-- NUEVO: acceso rápido a reportes -->
+                    <!-- ÚNICO botón visible de exportación en pantalla -->
                     <button onclick="openReportesModal()" class="btn btn-p btn-sm" title="Exportar reportes">
                         <i class="fas fa-file-export"></i> Reportes
                     </button>
@@ -1065,15 +1085,6 @@
                         <label style="font-weight:900; color:#0f172a;">Hasta:</label>
                         <input type="date" id="filter-date-end" onchange="updateDashboard()">
                         <span style="font-size:0.82rem; color:#334155; margin-left:8px; font-weight:800;">(Filtra lo recaudado)</span>
-
-                        <div class="reports-row">
-                            <button class="btn btn-g btn-sm" onclick="exportReporteGeneralPDF()">
-                                <i class="fas fa-file-pdf"></i> Reporte General (PDF)
-                            </button>
-                            <button class="btn btn-g btn-sm" onclick="exportReporteRecaudacionCSV()">
-                                <i class="fas fa-file-csv"></i> Recaudación (CSV)
-                            </button>
-                        </div>
                     </div>
 
                     <div class="kpi-row">
@@ -1106,7 +1117,7 @@
                     </div>
                 </div>
                 
-                                <div id="view-registro" class="hidden">
+                <div id="view-registro" class="hidden">
                     <div class="card">
                         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
                             <h3 style="font-weight:950; color:#0f172a;">Registrar Nuevo Terreno</h3>
@@ -1175,14 +1186,12 @@
                         </form>
                     </div>
                 </div>
-
-                <div id="view-listado" class="hidden">
+                
+                                <div id="view-listado" class="hidden">
                     <div class="card">
                         <div class="flex justify-between items-center" style="margin-bottom:12px; flex-wrap:wrap; gap:10px;">
                             <h3 style="font-weight:950; color:#0f172a;">Inventario</h3>
                             <div class="flex gap-2" style="flex-wrap:wrap;">
-                                <button class="btn btn-g btn-sm" onclick="exportInventarioPDF()"><i class="fas fa-file-pdf"></i> Inventario (PDF)</button>
-                                <button class="btn btn-g btn-sm" onclick="exportInventarioCSV()"><i class="fas fa-file-csv"></i> Inventario (CSV)</button>
                                 <input type="text" id="search-land" placeholder="Buscar por nombre o código..."
                                        style="padding:11px 12px; width:320px; max-width:100%; border:1px solid rgba(15,23,42,0.14); border-radius:14px;"
                                        onkeyup="renderTerrenos()">
@@ -1214,10 +1223,6 @@
                             <button onclick="switchVendas('resumo')" class="btn btn-p">Cobranzas</button>
                             <button onclick="switchVendas('completos')" class="btn btn-s">Completados</button>
                             <button onclick="switchVendas('hist')" class="btn btn-g">Editar / Historial</button>
-
-                            <!-- NUEVO: reportes de ventas -->
-                            <button onclick="exportVentasPDF()" class="btn btn-g"><i class="fas fa-file-pdf"></i> Ventas (PDF)</button>
-                            <button onclick="exportVentasCSV()" class="btn btn-g"><i class="fas fa-file-csv"></i> Ventas (CSV)</button>
 
                             <button onclick="loadData()" class="btn btn-w" title="Recargar"><i class="fas fa-sync"></i></button>
                         </div>
@@ -1518,7 +1523,7 @@
                     </div>
                 </div>
                 
-                                <div class="input-group">
+                <div class="input-group">
                     <label>Nuevo saldo pendiente (mismo tipo de moneda de la venta)</label>
                     <input type="number" id="ren-nuevo-saldo" step="0.01" required oninput="renCalcPreview()">
                 </div>
@@ -1605,7 +1610,7 @@
         </div>
     </div>
 
-    <!-- NUEVO: Modal Reportes (opcional) -->
+    <!-- Modal Reportes -->
     <div id="modal-reportes" class="modal hidden">
         <div class="modal-content" style="max-width:720px;">
             <div class="modal-header">
@@ -1654,6 +1659,22 @@
         </div>
     </div>
 
+    <!-- NUEVO: Visor interno de PDF/Imagen (con Descargar + X) -->
+    <div id="modal-fileview" class="modal hidden">
+        <div class="modal-content" style="max-width:980px;">
+            <div class="modal-header">
+                <h3 id="fileview-title" style="font-weight:950; color:#0f172a; margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Vista previa</h3>
+                <div class="flex items-center gap-2">
+                    <button id="btn-fileview-download" class="btn btn-p btn-sm" onclick="downloadCurrentFile()">
+                        <i class="fas fa-download"></i> Descargar
+                    </button>
+                    <button class="close-modal" onclick="closeFileViewer()">&times;</button>
+                </div>
+            </div>
+            <div id="fileview-body"></div>
+        </div>
+    </div>
+
     <script>
         const { Client, Account, Databases, Storage, ID, Query, Permission, Role } = Appwrite;
         const client = new Client();
@@ -1698,8 +1719,8 @@
             const n = parseFloat(val);
             return `Bs ${NF2.format(isFinite(n) ? n : 0)}`;
         }
-
-        function fileKey(f) {
+        
+                function fileKey(f) {
             try { return `${f.name || ''}|${f.size || 0}|${f.lastModified || 0}`; }
             catch (_) { return String(Math.random()); }
         }
@@ -1852,6 +1873,121 @@
             }, { passive: true });
         }
 
+        /* =========================================================
+           NUEVO: VISOR INTERNO DE ARCHIVOS (PDF/IMAGEN)
+           - evita window.open (popups)
+           - incluye Descargar + X
+        ========================================================= */
+        let _fileviewState = {
+            url: '',
+            downloadUrl: '',
+            name: '',
+            isPdf: false,
+            objectUrl: null
+        };
+
+        function _cleanupFileViewerMedia() {
+            try {
+                const body = document.getElementById('fileview-body');
+                if (body) body.innerHTML = '';
+            } catch (_) {}
+
+            try {
+                if (_fileviewState.objectUrl) {
+                    safeRevokeObjectURL(_fileviewState.objectUrl);
+                    _fileviewState.objectUrl = null;
+                }
+            } catch (_) {}
+
+            _fileviewState.url = '';
+            _fileviewState.downloadUrl = '';
+            _fileviewState.name = '';
+            _fileviewState.isPdf = false;
+        }
+
+        window.closeFileViewer = () => {
+            _cleanupFileViewerMedia();
+            const modal = document.getElementById('modal-fileview');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        function _toStr(v) { return String(v || ''); }
+
+        function forceDownload(url, filename) {
+            try {
+                const u = _toStr(url);
+                if (!u) { alert('No hay archivo para descargar.'); return; }
+
+                const a = document.createElement('a');
+                a.href = u;
+                a.download = filename ? String(filename) : 'archivo';
+                a.rel = 'noopener noreferrer';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } catch (e) {
+                alert('No se pudo iniciar la descarga.\n' + (e?.message || e));
+            }
+        }
+
+        window.downloadCurrentFile = () => {
+            const url = _fileviewState.downloadUrl || _fileviewState.url;
+            const name = _fileviewState.name || 'archivo';
+            forceDownload(url, name);
+        };
+
+        window.openFileViewer = (url, name, isPdf, downloadUrl) => {
+            try {
+                // cerrar y limpiar anterior (si había)
+                _cleanupFileViewerMedia();
+
+                const u = _toStr(url);
+                if (!u) return;
+
+                _fileviewState.url = u;
+                _fileviewState.downloadUrl = _toStr(downloadUrl) || u;
+                _fileviewState.name = _toStr(name) || 'Archivo';
+                _fileviewState.isPdf = !!isPdf;
+
+                const title = document.getElementById('fileview-title');
+                if (title) title.innerText = _fileviewState.name;
+
+                const body = document.getElementById('fileview-body');
+                if (!body) return;
+
+                if (_fileviewState.isPdf) {
+                    body.innerHTML = `<iframe class="fileview-frame" src="${u}"></iframe>`;
+                } else {
+                    body.innerHTML = `<img class="fileview-img" src="${u}" alt="${_fileviewState.name}">`;
+                }
+
+                const modal = document.getElementById('modal-fileview');
+                if (modal) modal.classList.remove('hidden');
+            } catch (e) {
+                console.error('openFileViewer error', e);
+                alert('No se pudo abrir el archivo.\n' + (e?.message || e));
+            }
+        };
+
+        function openLocalFileViewer(file) {
+            try {
+                if (!file) return;
+                // limpiar anterior
+                _cleanupFileViewerMedia();
+
+                const url = URL.createObjectURL(file);
+                _fileviewState.objectUrl = url;
+
+                const name = file?.name || 'Archivo';
+                const pdf = isPoolPdf(file);
+                window.openFileViewer(url, name, pdf, url);
+            } catch (e) {
+                console.error('openLocalFileViewer', e);
+            }
+        }
+
+        /* ========================================================= */
+
         function renderTerrenoFilePool() {
             const box = document.getElementById('t-files-pool');
             const counter = document.getElementById('t-files-count');
@@ -1899,8 +2035,7 @@
         window.previewPoolFile = (idx) => {
             const f = terrenoFilePool[idx];
             if (!f) return;
-            try { const url = URL.createObjectURL(f); window.open(url, '_blank', 'noopener,noreferrer'); }
-            catch (_) {}
+            openLocalFileViewer(f);
         };
 
         window.removePoolFile = (idx) => {
@@ -1988,8 +2123,7 @@
         window.previewVendaPoolFile = (idx) => {
             const f = vendaFilePool[idx];
             if (!f) return;
-            try { const url = URL.createObjectURL(f); window.open(url, '_blank', 'noopener,noreferrer'); }
-            catch (_) {}
+            openLocalFileViewer(f);
         };
 
         window.removeVendaPoolFile = (idx) => {
@@ -2080,8 +2214,7 @@
         window.previewEditPoolFile = (idx) => {
             const f = editFilePool[idx];
             if (!f) return;
-            try { const url = URL.createObjectURL(f); window.open(url, '_blank', 'noopener,noreferrer'); }
-            catch (_) {}
+            openLocalFileViewer(f);
         };
 
         window.removeEditPoolFile = (idx) => {
@@ -2221,6 +2354,19 @@
             return String(u || '');
         }
 
+        function getFileDownloadUrl(file) {
+            if (!file) return '';
+            const f = (typeof file === 'string') ? { url: file } : file;
+
+            const id = f.id || f.fileId;
+            if (id) {
+                const dl = storage.getFileDownload(BUCKET_ID, id);
+                const url = (typeof dl === 'string') ? dl : (dl && dl.href ? dl.href : String(dl));
+                return String(url || '');
+            }
+            return getFileUrl(file);
+        }
+
         function getFileName(file) {
             if (!file) return 'Archivo';
             if (typeof file === 'string') return 'Archivo';
@@ -2239,10 +2385,12 @@
             return isPdfByNameOrUrl(name) || isPdfByNameOrUrl(file.url);
         }
 
-        window.openFile = (url) => {
+        // Reemplazo: sin window.open (evita popups)
+        window.openFile = (url, name = 'Archivo') => {
             const u = String(url || '');
             if (!u) return;
-            window.open(u, '_blank', 'noopener,noreferrer');
+            const pdf = isPdfByNameOrUrl(u);
+            window.openFileViewer(u, name, pdf, u);
         };
 
         function safeCurrency(code){
@@ -3254,23 +3402,24 @@
 
             d.fotos.forEach((u, i) => {
                 const url = getFileUrl(u);
+                const dlUrl = getFileDownloadUrl(u);
                 const pdf = isPdfFile(u);
                 const name = getFileName(u);
 
                 let content = '';
                 if (pdf) {
                     content = `
-                        <a href="${url}" target="_blank" rel="noopener noreferrer"
-                           style="text-decoration:none; color:inherit; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding-top:6px;">
+                        <div style="text-decoration:none; color:inherit; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding-top:6px; cursor:pointer;"
+                             onclick='openFileViewer(${JSON.stringify(url)}, ${JSON.stringify(name)}, true, ${JSON.stringify(dlUrl)})'>
                             <i class="fas fa-file-pdf pdf-icon"></i>
                             <div class="file-name" title="${name}">${name}</div>
-                        </a>
+                        </div>
                     `;
                 } else {
                     content = `
-                        <a href="${url}" target="_blank" rel="noopener noreferrer" style="width:100%; height:100%; display:block;">
-                            <img src="${url}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;">
-                        </a>
+                        <img src="${url}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;"
+                             onclick='openFileViewer(${JSON.stringify(url)}, ${JSON.stringify(name)}, false, ${JSON.stringify(dlUrl)})'
+                             onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;padding:10px;text-align:center;font-weight:900;color:#64748b;&quot;>Imagen no previsualizable</div>';">
                         <div class="file-name" title="${name}">${name}</div>
                     `;
                 }
@@ -3350,18 +3499,21 @@
             let mediaHtml = '';
             d.fotos.forEach(u => {
                 const url = getFileUrl(u);
+                const dlUrl = getFileDownloadUrl(u);
                 const pdf = isPdfFile(u);
                 const name = getFileName(u);
 
                 if (pdf) {
-                    mediaHtml += `<a href="${url}" target="_blank" rel="noopener noreferrer" class="doc-link">
+                    mediaHtml += `<div class="doc-link"
+                        onclick='openFileViewer(${JSON.stringify(url)}, ${JSON.stringify(name)}, true, ${JSON.stringify(dlUrl)})'>
                         <i class="fas fa-file-pdf" style="color:var(--danger);font-size:1.2rem;"></i>
                         <span>${name}</span>
-                    </a>`;
+                    </div>`;
                 } else {
-                    mediaHtml += `<a href="${url}" target="_blank" rel="noopener noreferrer" style="display:block;">
+                    mediaHtml += `<div style="display:block; cursor:pointer;"
+                        onclick='openFileViewer(${JSON.stringify(url)}, ${JSON.stringify(name)}, false, ${JSON.stringify(dlUrl)})'>
                         <img src="${url}" class="img-full">
-                    </a>`;
+                    </div>`;
                 }
             });
 
@@ -3519,7 +3671,7 @@
         }
 
         /* =========================================================
-           NUEVO: REPORTES (PDF/CSV) SIN POPUPS (descarga directa)
+           REPORTES (PDF/CSV) SIN POPUPS (descarga directa)
         ========================================================= */
         function getReportPeriod() {
             const rs = document.getElementById('rep-start')?.value || document.getElementById('filter-date-start')?.value || '';
