@@ -6,93 +6,59 @@
     <title>Sistema Inmobiliario - Corvac (Appwrite)</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.1"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         /* --- ESTILOS VISUAIS (CSS) --- */
-        :root {
-            --primary: #2c3e50; 
-            --secondary: #34495e; 
-            --accent: #2980b9;
-            --success: #27ae60; 
-            --warning: #f39c12; 
-            --danger: #c0392b;
-            --light: #f4f6f9; 
-            --white: #fff;
-        }
-        
+        :root { --primary: #2c3e50; --secondary: #34495e; --accent: #2980b9; --success: #27ae60; --warning: #f39c12; --danger: #c0392b; --light: #f4f6f9; --white: #fff; }
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
-        
         body { background: var(--light); color: #333; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        /* Utils */
         .hidden { display: none !important; }
-        .flex { display: flex; } 
-        .gap-2 { gap: 10px; } 
-        .w-100 { width: 100%; }
-        .text-right { text-align: right; }
-        .text-center { text-align: center; }
+        .flex { display: flex; } .gap-2 { gap: 10px; } .w-100 { width: 100%; } .text-right { text-align: right; } .text-center { text-align: center; }
         
-        /* Botones */
         .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; color: #fff; transition: 0.2s; }
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-p { background: var(--accent); } 
-        .btn-s { background: var(--success); }
-        .btn-d { background: var(--danger); } 
-        .btn-w { background: var(--warning); }
-        .btn-g { background: #7f8c8d; }
+        .btn-p { background: var(--accent); } .btn-s { background: var(--success); } .btn-d { background: var(--danger); } .btn-w { background: var(--warning); } .btn-g { background: #7f8c8d; }
 
-        /* Pantalla de Login */
+        /* Login */
         #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; justify-content: center; align-items: center; z-index: 2000; }
         .login-box { background: white; padding: 2rem; border-radius: 8px; width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-        
-        /* Formularios */
         .input-group { margin-bottom: 15px; text-align: left; }
         .input-group label { display: block; margin-bottom: 5px; font-weight: 500; }
         .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
 
-        /* Layout Principal */
+        /* Layout */
         #app-container { display: flex; flex: 1; overflow: hidden; }
-        
-        /* Menu Lateral */
         aside { width: 250px; background: var(--primary); color: white; display: flex; flex-direction: column; }
         aside h3 { padding: 20px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .menu button { width: 100%; padding: 15px; background: none; border: none; color: #ccc; text-align: left; cursor: pointer; font-size: 1rem; }
         .menu button:hover, .menu button.active { background: var(--secondary); color: white; border-left: 4px solid var(--accent); }
         .menu i { margin-right: 10px; width: 20px; text-align: center; }
         
-        /* Conteudo */
         main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--light); }
         header { background: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         #content { flex: 1; padding: 20px; overflow-y: auto; }
 
-        /* Cards & Tables */
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #f8f9fa; color: var(--primary); }
         
-        /* Badges de Status */
         .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
         .status-disponible { background-color: #e8f8f5; color: #27ae60; border: 1px solid #27ae60; }
         .status-vendido { background-color: #eaeded; color: #7f8c8d; border: 1px solid #7f8c8d; }
 
-        /* Galeria de Fotos */
         .gallery { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; }
         .img-preview-box { position: relative; width: 80px; height: 80px; border: 1px solid #ddd; background:#fff; }
         .img-preview-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; cursor: pointer; }
         .btn-del-img { position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; line-height: 20px; text-align: center; cursor: pointer; z-index:10; }
-        
         .thumb-small { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; cursor: pointer; background:#fff; }
         .thumb-small:hover { transform: scale(3.5); position:relative; z-index:100; box-shadow:0 5px 15px rgba(0,0,0,0.3); }
-        
         .img-full { width: 100%; max-height: 400px; object-fit: contain; border: 1px solid #eee; background: #fafafa; margin-bottom: 10px; }
 
-        /* Loader */
         #loader { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.8); z-index: 3000; display: flex; justify-content: center; align-items: center; font-weight: bold; color: var(--accent); flex-direction: column; }
-        
-        /* Modais (Janelas) */
         .modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index: 2500; display: flex; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
@@ -101,24 +67,15 @@
 </head>
 <body>
 
-    <div id="loader" class="hidden">
-        <i class="fas fa-spinner fa-spin fa-3x"></i>
-        <p style="margin-top:10px;">Procesando...</p>
-    </div>
+    <div id="loader" class="hidden"><i class="fas fa-spinner fa-spin fa-3x"></i><p style="margin-top:10px;">Procesando...</p></div>
 
     <div id="login-screen">
         <div class="login-box">
             <h2 style="color:var(--primary); margin-bottom:10px;">Corvac Inmobiliaria</h2>
             <p style="color:#666; margin-bottom:20px;">Acceso al Sistema</p>
             <form id="form-login">
-                <div class="input-group">
-                    <label>Correo Electrónico</label>
-                    <input type="email" id="email" required placeholder="admin@corvac.com">
-                </div>
-                <div class="input-group">
-                    <label>Contraseña</label>
-                    <input type="password" id="password" required placeholder="******">
-                </div>
+                <div class="input-group"><label>Correo Electrónico</label><input type="email" id="email" required placeholder="admin@corvac.com"></div>
+                <div class="input-group"><label>Contraseña</label><input type="password" id="password" required placeholder="******"></div>
                 <button type="submit" class="btn btn-p w-100">Ingresar</button>
                 <p id="login-msg" style="color:red; margin-top:10px; font-size:0.9rem;"></p>
                 <p style="margin-top:10px; font-size:0.8rem; color:#888;">Ingresa para crear cuenta automática.</p>
@@ -127,7 +84,6 @@
     </div>
 
     <div id="app-container" class="hidden">
-        
         <aside>
             <h3>Corvac Panel</h3>
             <div class="menu">
@@ -141,32 +97,17 @@
         <main>
             <header>
                 <h4 id="page-title">Resumen General</h4>
-                <div>
-                    <span id="user-email-display" style="margin-right:10px; font-size:0.9rem; color:#666;"></span>
-                    <button onclick="logout()" class="btn btn-g">Cerrar Sesión</button>
-                </div>
+                <div><span id="user-email-display" style="margin-right:10px; font-size:0.9rem; color:#666;"></span><button onclick="logout()" class="btn btn-g">Cerrar Sesión</button></div>
             </header>
             
             <div id="content">
-                
                 <div id="view-resumen">
                     <div class="flex gap-2" style="margin-bottom:20px; flex-wrap:wrap;">
-                        <div class="card" style="flex:1; text-align:center; min-width:200px;">
-                            <h3>Total Terrenos</h3>
-                            <h1 id="kpi-total">0</h1>
-                        </div>
-                        <div class="card" style="flex:1; text-align:center; min-width:200px;">
-                            <h3>Disponibles</h3>
-                            <h1 id="kpi-disp" style="color:var(--success)">0</h1>
-                        </div>
-                        <div class="card" style="flex:1; text-align:center; min-width:200px;">
-                            <h3>Recaudado (Ref. Bs)</h3>
-                            <h1 id="kpi-money" style="color:var(--accent)">0</h1>
-                        </div>
+                        <div class="card" style="flex:1; text-align:center; min-width:200px;"><h3>Total Terrenos</h3><h1 id="kpi-total">0</h1></div>
+                        <div class="card" style="flex:1; text-align:center; min-width:200px;"><h3>Disponibles</h3><h1 id="kpi-disp" style="color:var(--success)">0</h1></div>
+                        <div class="card" style="flex:1; text-align:center; min-width:200px;"><h3>Recaudado (Ref. Bs)</h3><h1 id="kpi-money" style="color:var(--accent)">0</h1></div>
                     </div>
-                    <div class="card">
-                        <canvas id="chart-fin" height="100"></canvas>
-                    </div>
+                    <div class="card"><canvas id="chart-fin" height="100"></canvas></div>
                 </div>
 
                 <div id="view-registro" class="hidden">
@@ -174,41 +115,16 @@
                         <h3>Nuevo Terreno</h3>
                         <form id="form-terreno">
                             <div class="flex gap-2">
-                                <div class="input-group w-100">
-                                    <label>Código Interno</label>
-                                    <input type="text" id="t-codigo" required placeholder="Ej: L-01">
-                                </div>
-                                <div class="input-group w-100">
-                                    <label>Nombre / Ubicación</label>
-                                    <input type="text" id="t-nome" required>
-                                </div>
+                                <div class="input-group w-100"><label>Código Interno</label><input type="text" id="t-codigo" required placeholder="Ej: L-01"></div>
+                                <div class="input-group w-100"><label>Nombre / Ubicación</label><input type="text" id="t-nome" required></div>
                             </div>
                             <div class="flex gap-2">
-                                <div class="input-group w-100">
-                                    <label>Superficie (m²)</label>
-                                    <input type="number" id="t-area">
-                                </div>
-                                <div class="input-group w-100">
-                                    <label>Moneda</label>
-                                    <select id="t-moeda" onchange="window.showPreview(document.getElementById('t-precio'), 'preview-precio-t', this.value)">
-                                        <option value="BOB">Bolivianos (Bs)</option>
-                                        <option value="USD">Dólar ($us)</option>
-                                    </select>
-                                </div>
-                                <div class="input-group w-100">
-                                    <label>Precio Base</label>
-                                    <input type="number" id="t-precio" required min="0" oninput="window.showPreview(this, 'preview-precio-t', document.getElementById('t-moeda').value)">
-                                    <small id="preview-precio-t" class="money-preview">0,00</small>
-                                </div>
+                                <div class="input-group w-100"><label>Superficie (m²)</label><input type="number" id="t-area"></div>
+                                <div class="input-group w-100"><label>Moneda</label><select id="t-moeda" onchange="window.showPreview(document.getElementById('t-precio'), 'preview-precio-t', this.value)"><option value="BOB">Bolivianos (Bs)</option><option value="USD">Dólar ($us)</option></select></div>
+                                <div class="input-group w-100"><label>Precio Base</label><input type="number" id="t-precio" required min="0" oninput="window.showPreview(this, 'preview-precio-t', document.getElementById('t-moeda').value)"><small id="preview-precio-t" class="money-preview">0,00</small></div>
                             </div>
-                            <div class="input-group">
-                                <label><i class="fas fa-camera"></i> Fotos del Terreno (Seleccione varias)</label>
-                                <input type="file" id="t-files" multiple accept="image/*">
-                            </div>
-                            <div class="input-group">
-                                <label>Notas Adicionales</label>
-                                <textarea id="t-notas" rows="3"></textarea>
-                            </div>
+                            <div class="input-group"><label><i class="fas fa-camera"></i> Fotos del Terreno</label><input type="file" id="t-files" multiple accept="image/*"></div>
+                            <div class="input-group"><label>Notas Adicionales</label><textarea id="t-notas" rows="3"></textarea></div>
                             <button type="submit" class="btn btn-s">Guardar Terreno</button>
                         </form>
                     </div>
@@ -217,22 +133,9 @@
                 <div id="view-listado" class="hidden">
                     <div class="card">
                         <div class="flex justify-between" style="margin-bottom:10px;">
-                            <h3>Inventario</h3>
-                            <input type="text" id="search-land" placeholder="Buscar por nombre o código..." style="padding:8px; border:1px solid #ddd; border-radius:4px;" onkeyup="renderTerrenos()">
+                            <h3>Inventario</h3><input type="text" id="search-land" placeholder="Buscar..." style="padding:8px;" onkeyup="renderTerrenos()">
                         </div>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Img</th>
-                                    <th>Cód</th>
-                                    <th>Nombre</th>
-                                    <th>Precio</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="lista-terrenos"></tbody>
-                        </table>
+                        <table><thead><tr><th>Img</th><th>Cód</th><th>Nombre</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="lista-terrenos"></tbody></table>
                     </div>
                 </div>
 
@@ -243,41 +146,15 @@
                             <button onclick="switchVendas('hist')" class="btn btn-g">Historial / Editar</button>
                             <button onclick="loadData()" class="btn btn-w" title="Recargar"><i class="fas fa-sync"></i></button>
                         </div>
-
                         <div id="tab-vendas-resumo">
                             <input type="text" id="search-venda" placeholder="Buscar cliente..." style="width:100%; padding:10px; margin-bottom:10px;" onkeyup="renderVendas()">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Cliente</th>
-                                        <th>Terreno</th>
-                                        <th>Cuota</th>
-                                        <th>Vence</th>
-                                        <th>Monto</th>
-                                        <th>Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="lista-cobrancas"></tbody>
-                            </table>
+                            <table><thead><tr><th>Cliente</th><th>Terreno</th><th>Cuota</th><th>Vence</th><th>Monto</th><th>Acción</th></tr></thead><tbody id="lista-cobrancas"></tbody></table>
                         </div>
-
                         <div id="tab-vendas-hist" class="hidden">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Cliente</th>
-                                        <th>Terreno</th>
-                                        <th>Total</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="lista-historico"></tbody>
-                            </table>
+                            <table><thead><tr><th>ID</th><th>Cliente</th><th>Terreno</th><th>Total</th><th>Acciones</th></tr></thead><tbody id="lista-historico"></tbody></table>
                         </div>
                     </div>
                 </div>
-
             </div>
         </main>
     </div>
@@ -287,38 +164,14 @@
             <div class="modal-header"><h3>Realizar Venta</h3><button class="close-modal" onclick="closeModal('modal-venda')">&times;</button></div>
             <form id="form-venda">
                 <input type="hidden" id="v-land-id">
-                <p style="background:#eee; padding:10px; border-radius:4px; margin-bottom:10px;">
-                    Terreno: <strong id="v-land-info"></strong>
-                </p>
-                <div class="flex gap-2">
-                    <div class="input-group w-100"><label>Cliente</label><input type="text" id="v-cliente" required></div>
-                    <div class="input-group w-100"><label>CI/Doc</label><input type="text" id="v-ci"></div>
-                </div>
-                <div class="input-group">
-                    <label>Documentos / Fotos Cliente</label>
-                    <input type="file" id="v-files" multiple accept="image/*">
-                </div>
-                
+                <p style="background:#eee; padding:10px; border-radius:4px; margin-bottom:10px;">Terreno: <strong id="v-land-info"></strong></p>
+                <div class="flex gap-2"><div class="input-group w-100"><label>Cliente</label><input type="text" id="v-cliente" required></div><div class="input-group w-100"><label>CI/Doc</label><input type="text" id="v-ci"></div></div>
+                <div class="input-group"><label>Documentos / Fotos Cliente</label><input type="file" id="v-files" multiple accept="image/*"></div>
                 <hr style="margin:10px 0;">
-                
-                <div class="flex gap-2">
-                    <div class="input-group w-100"><label>Precio Final</label><input type="number" id="v-total" required oninput="window.calcLive()"></div>
-                    <div class="input-group w-100"><label>Entrada (Inicial)</label><input type="number" id="v-entrada" value="0" oninput="window.calcLive()"></div>
-                </div>
-                <div class="flex gap-2">
-                    <div class="input-group w-100"><label>Nº Cuotas</label><input type="number" id="v-ncuotas" value="12" oninput="window.calcLive()"></div>
-                    <div class="input-group w-100"><label>1er Vencimiento</label><input type="date" id="v-data1" required></div>
-                </div>
-                
-                <div class="live-calc-box">
-                    <h4>Cuota Mensual Estimada</h4>
-                    <div id="live-result-text" class="live-result">0,00</div>
-                </div>
-
-                <div class="text-right" style="margin-top:15px;">
-                    <button type="button" onclick="closeModal('modal-venda')" class="btn btn-g">Cancelar</button>
-                    <button type="submit" class="btn btn-p">Confirmar Venta</button>
-                </div>
+                <div class="flex gap-2"><div class="input-group w-100"><label>Precio Final</label><input type="number" id="v-total" required oninput="window.calcLive()"></div><div class="input-group w-100"><label>Entrada (Inicial)</label><input type="number" id="v-entrada" value="0" oninput="window.calcLive()"></div></div>
+                <div class="flex gap-2"><div class="input-group w-100"><label>Nº Cuotas</label><input type="number" id="v-ncuotas" value="12" oninput="window.calcLive()"></div><div class="input-group w-100"><label>1er Vencimiento</label><input type="date" id="v-data1" required></div></div>
+                <div class="live-calc-box"><h4>Cuota Mensual Estimada</h4><div id="live-result-text" class="live-result">0,00</div></div>
+                <div class="text-right" style="margin-top:15px;"><button type="button" onclick="closeModal('modal-venda')" class="btn btn-g">Cancelar</button><button type="submit" class="btn btn-p">Confirmar</button></div>
             </form>
         </div>
     </div>
@@ -327,31 +180,12 @@
         <div class="modal-content" style="max-width:400px;">
             <div class="modal-header"><h3>Registrar Pago</h3><button class="close-modal" onclick="closeModal('modal-pagar')">&times;</button></div>
             <form id="form-pagar">
-                <input type="hidden" id="p-venda-id">
-                <input type="hidden" id="p-cuota-idx">
-                
-                <div style="text-align:center; margin:15px 0;">
-                    <h2 id="p-valor-display" style="color:var(--success)"></h2>
-                    <small>Valor Original de la Cuota</small>
-                </div>
-
-                <div class="input-group">
-                    <label>Monto a Pagar (Amortizable)</label>
-                    <input type="number" id="p-valor-real" step="0.01" required style="font-size:1.2rem; font-weight:bold; color:green;">
-                    <small style="color:#666">Si paga más, el saldo se descuenta de las siguientes cuotas.</small>
-                </div>
-
-                <div id="div-tc" class="input-group hidden" style="background:#fff3cd; padding:10px;">
-                    <label>Tipo de Cambio del Día (Bs/USD)</label>
-                    <input type="number" id="p-tc" value="6.96" step="0.01">
-                </div>
-
-                <div class="input-group">
-                    <label>Fecha Pago</label>
-                    <input type="date" id="p-data" required>
-                </div>
-                
-                <button type="submit" class="btn btn-s w-100">Confirmar Recepción</button>
+                <input type="hidden" id="p-venda-id"><input type="hidden" id="p-cuota-idx">
+                <div style="text-align:center; margin:15px 0;"><h2 id="p-valor-display" style="color:var(--success)"></h2><small>Valor Original de la Cuota</small></div>
+                <div class="input-group"><label>Monto a Pagar (Amortizable)</label><input type="number" id="p-valor-real" step="0.01" required style="font-size:1.2rem; font-weight:bold; color:green;"><small style="color:#666">Si paga más, se descuenta de las siguientes.</small></div>
+                <div id="div-tc" class="input-group hidden" style="background:#fff3cd; padding:10px;"><label>T.C. Día (Bs/USD)</label><input type="number" id="p-tc" value="6.96" step="0.01"></div>
+                <div class="input-group"><label>Fecha Pago</label><input type="date" id="p-data" required></div>
+                <button type="submit" class="btn btn-s w-100">Confirmar</button>
             </form>
         </div>
     </div>
@@ -360,76 +194,52 @@
         <div class="modal-content">
             <div class="modal-header"><h3>Editar / Detalles</h3><button class="close-modal" onclick="closeModal('modal-edit')">&times;</button></div>
             <form id="form-edit">
-                <input type="hidden" id="e-id">
-                <input type="hidden" id="e-type">
-                
+                <input type="hidden" id="e-id"><input type="hidden" id="e-type">
                 <div class="input-group"><label>Nombre / Cliente</label><input type="text" id="e-nome"></div>
                 <div class="input-group"><label>Valor / Precio</label><input type="number" id="e-valor"></div>
                 <div class="input-group"><label>Notas / Observaciones</label><textarea id="e-notas"></textarea></div>
-                
-                <label>Galeria de Imágenes (Click para ver, X para borrar):</label>
-                <div id="e-gallery" class="gallery"></div>
-                
-                <div class="input-group" style="margin-top:10px;">
-                    <label><i class="fas fa-plus"></i> Agregar nuevas fotos</label>
-                    <input type="file" id="e-new-files" multiple>
-                </div>
-
-                <div class="text-right" style="margin-top:20px;">
-                    <button type="button" onclick="closeModal('modal-edit')" class="btn btn-g">Cerrar</button>
-                    <button type="submit" class="btn btn-p">Salvar Cambios</button>
-                </div>
+                <label>Galeria de Imágenes:</label><div id="e-gallery" class="gallery"></div>
+                <div class="input-group" style="margin-top:10px;"><label><i class="fas fa-plus"></i> Agregar nuevas fotos</label><input type="file" id="e-new-files" multiple></div>
+                <div class="text-right" style="margin-top:20px;"><button type="button" onclick="closeModal('modal-edit')" class="btn btn-g">Cerrar</button><button type="submit" class="btn btn-p">Salvar Cambios</button></div>
             </form>
         </div>
     </div>
 
-    <div id="modal-detalles" class="modal hidden">
-        <div class="modal-content" style="max-width:600px;">
-            <div class="modal-header"><h3>Detalles Completos</h3><button class="close-modal" onclick="closeModal('modal-detalles')">&times;</button></div>
-            <div id="detalles-contenido"></div>
-        </div>
-    </div>
+    <div id="modal-detalles" class="modal hidden"><div class="modal-content" style="max-width:600px;"><div class="modal-header"><h3>Detalles Completos</h3><button class="close-modal" onclick="closeModal('modal-detalles')">&times;</button></div><div id="detalles-contenido"></div></div></div>
 
     <script>
-        // Importar Appwrite
         const { Client, Account, Databases, Storage, ID, Query } = Appwrite;
         const client = new Client();
 
-        // ==========================================
-        // 1. CONFIGURACIÓN (SEU ID DO PROJETO)
-        // ==========================================
+        // --- CONFIGURAÇÃO CORRIGIDA ---
+        // Alterado para o endpoint NYC que aparece na sua imagem
         const PROJECT_ID = '693b19f6002a7ae91448'; 
         
         client
-            .setEndpoint('https://cloud.appwrite.io/v1')
+            .setEndpoint('https://nyc.cloud.appwrite.io/v1') 
             .setProject(PROJECT_ID);
 
         const account = new Account(client);
         const db = new Databases(client);
         const storage = new Storage(client);
 
-        // IDs que você criou no painel do Appwrite
+        // IDs CONFIRMADOS NAS IMAGENS
         const DB_ID = 'db_main';
         const COL_TERRENOS = 'col_terrenos';
         const COL_VENDAS = 'col_vendas';
         const BUCKET_ID = 'bucket_fotos';
 
-        // Variáveis de estado
         let terrenos = [], vendas = [], user = null;
 
-        // ==========================================
-        // 2. AUTENTICAÇÃO (LOGIN)
-        // ==========================================
+        // --- AUTH ---
         async function checkSession() {
             try {
                 user = await account.get();
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('hidden');
                 document.getElementById('user-email-display').innerText = user.email;
-                loadData(); // Carregar dados ao entrar
-            } catch (e) {
-                // Não logado, mostra tela de login
-            }
+                loadData();
+            } catch (e) { console.log("Sem sessão"); }
         }
         checkSession();
 
@@ -438,11 +248,9 @@
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
             try {
-                // Tentar login normal
                 await account.createEmailSession(email, pass);
                 checkSession();
             } catch (error) {
-                // Se falhar, tenta criar a conta automaticamente (Facilidade para você)
                 try {
                     await account.create(ID.unique(), email, pass);
                     await account.createEmailSession(email, pass);
@@ -455,214 +263,124 @@
 
         window.logout = async () => { await account.deleteSession('current'); location.reload(); }
 
-        // ==========================================
-        // 3. CARREGAMENTO DE DADOS (CORE)
-        // ==========================================
+        // --- CORE DATA ---
         async function loadData() {
             document.getElementById('loader').classList.remove('hidden');
             try {
-                // Buscar Terrenos
                 const tRes = await db.listDocuments(DB_ID, COL_TERRENOS, [Query.limit(100)]);
-                // Truque: Ler o JSON da coluna 'dados'
                 terrenos = tRes.documents.map(d => ({ $id: d.$id, ...JSON.parse(d.dados) }));
                 
-                // Buscar Vendas
                 const vRes = await db.listDocuments(DB_ID, COL_VENDAS, [Query.limit(100)]);
                 vendas = vRes.documents.map(d => ({ $id: d.$id, ...JSON.parse(d.dados) }));
 
-                renderTerrenos(); 
-                renderVendas(); 
-                updateDashboard();
+                renderTerrenos(); renderVendas(); updateDashboard();
             } catch (e) { 
-                alert("Error cargando datos. Verifique los IDs en Appwrite (db_main, col_terrenos, col_vendas)."); 
+                alert("Error cargando datos. Verifique si la columna 'dados' fue creada en Appwrite."); 
                 console.error(e); 
             }
             document.getElementById('loader').classList.add('hidden');
         }
 
-        // Função para subir fotos
         async function uploadFiles(filesInput) {
             if (!filesInput.files.length) return [];
             let urls = [];
             for (let i = 0; i < filesInput.files.length; i++) {
                 try {
                     const res = await storage.createFile(BUCKET_ID, ID.unique(), filesInput.files[i]);
-                    // Gerar URL de visualização
-                    const url = client.config.endpoint + '/storage/buckets/' + BUCKET_ID + '/files/' + res.$id + '/view?project=' + PROJECT_ID;
-                    urls.push(url);
+                    urls.push(client.config.endpoint + '/storage/buckets/' + BUCKET_ID + '/files/' + res.$id + '/view?project=' + PROJECT_ID);
                 } catch (e) { console.error("Upload fail", e); }
             }
             return urls;
         }
 
-        // ==========================================
-        // 4. LÓGICA DE TERRENOS
-        // ==========================================
+        // --- TERRENOS ---
         document.getElementById('form-terreno').addEventListener('submit', async (e) => {
             e.preventDefault();
             document.getElementById('loader').classList.remove('hidden');
-            
             const urls = await uploadFiles(document.getElementById('t-files'));
-            
             const data = {
-                codigo: document.getElementById('t-codigo').value,
-                nome: document.getElementById('t-nome').value,
-                area: document.getElementById('t-area').value,
-                moeda: document.getElementById('t-moeda').value,
-                preco: parseFloat(document.getElementById('t-preco').value),
-                notas: document.getElementById('t-notas').value,
-                fotos: urls, 
-                estado: 'Disponible', 
-                habilitado: true
+                codigo: document.getElementById('t-codigo').value, nome: document.getElementById('t-nome').value,
+                area: document.getElementById('t-area').value, moneda: document.getElementById('t-moeda').value,
+                precio: parseFloat(document.getElementById('t-precio').value), notas: document.getElementById('t-notas').value,
+                fotos: urls, estado: 'Disponible', habilitado: true
             };
-
-            // Salvar no Appwrite (JSON stringify)
             await db.createDocument(DB_ID, COL_TERRENOS, ID.unique(), { dados: JSON.stringify(data) });
-            
             document.getElementById('form-terreno').reset();
-            nav('listado'); 
-            loadData();
+            nav('listado'); loadData();
         });
 
         function renderTerrenos() {
             const tbody = document.getElementById('lista-terrenos');
             tbody.innerHTML = '';
             const filtro = document.getElementById('search-land').value.toLowerCase();
-            
             terrenos.forEach(t => {
                 if (!t.nome.toLowerCase().includes(filtro) && !t.codigo.toLowerCase().includes(filtro)) return;
-                
-                // Mostrar primeira foto pequena
                 let img = t.fotos && t.fotos.length ? `<img src="${t.fotos[0]}" class="thumb-small" onclick="verDetalles('${t.$id}', 'land')">` : '<div style="width:50px;height:50px;background:#eee;"></div>';
-                
                 let btnV = (t.estado === 'Disponible' && t.habilitado) ? `<button class="btn btn-p" onclick="openVenda('${t.$id}')">Vender</button>` : '-';
-                
-                tbody.innerHTML += `<tr>
-                    <td>${img}</td>
-                    <td>${t.codigo}</td>
-                    <td>${t.nome}</td>
-                    <td>${t.moeda} ${t.preco}</td>
-                    <td>${t.estado}</td>
-                    <td>
-                        <button class="btn btn-g" onclick="openEdit('${t.$id}', 'land')"><i class="fas fa-edit"></i></button> 
-                        ${btnV} 
-                        <button class="btn btn-d" onclick="deleteItem('${t.$id}', 'land')"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
+                tbody.innerHTML += `<tr><td>${img}</td><td>${t.codigo}</td><td>${t.nome}</td><td>${t.moneda} ${t.precio}</td><td>${t.estado}</td><td><button class="btn btn-g" onclick="openEdit('${t.$id}', 'land')"><i class="fas fa-edit"></i></button> ${btnV} <button class="btn btn-d" onclick="deleteItem('${t.$id}', 'land')"><i class="fas fa-trash"></i></button></td></tr>`;
             });
         }
 
-        // ==========================================
-        // 5. LÓGICA DE VENDAS
-        // ==========================================
+        // --- VENTAS ---
         window.openVenda = (id) => {
             const t = terrenos.find(x => x.$id === id);
             document.getElementById('v-land-id').value = id;
-            document.getElementById('v-land-info').innerText = `${t.codigo} - ${t.nome} (${t.moeda} ${t.preco})`;
-            document.getElementById('v-total').value = t.preco;
+            document.getElementById('v-land-info').innerText = `${t.codigo} - ${t.nome} (${t.moneda} ${t.precio})`;
+            document.getElementById('v-total').value = t.precio;
             document.getElementById('v-data1').value = new Date().toISOString().split('T')[0];
-            window.calcLive(); // Calcular inicial
+            window.calcLive();
             document.getElementById('modal-venda').classList.remove('hidden');
         }
 
         document.getElementById('form-venda').addEventListener('submit', async (e) => {
             e.preventDefault();
             document.getElementById('loader').classList.remove('hidden');
-            
             const tId = document.getElementById('v-land-id').value;
             const terreno = terrenos.find(x => x.$id === tId);
             const urls = await uploadFiles(document.getElementById('v-files'));
-            
             const total = parseFloat(document.getElementById('v-total').value);
             const ent = parseFloat(document.getElementById('v-entrada').value);
             const qtd = parseInt(document.getElementById('v-ncuotas').value);
             const data1 = new Date(document.getElementById('v-data1').value);
-            
-            // Gerar parcelas
             let cuotas = [];
             for(let i=0; i<qtd; i++) {
-                let dt = new Date(data1); 
-                dt.setMonth(dt.getMonth() + i);
-                cuotas.push({ 
-                    n: i+1, 
-                    valor: (total-ent)/qtd, 
-                    venc: dt.toISOString().split('T')[0], 
-                    pago: false, 
-                    valor_pago: 0 
-                });
+                let dt = new Date(data1); dt.setMonth(dt.getMonth() + i);
+                cuotas.push({ n: i+1, valor: (total-ent)/qtd, venc: dt.toISOString().split('T')[0], pago: false, valor_pago: 0 });
             }
-
             const venda = {
-                cliente: document.getElementById('v-cliente').value, 
-                ci: document.getElementById('v-ci').value,
-                fotos: urls, 
-                landId: tId, 
-                landNome: terreno.nome, 
-                moeda: terreno.moeda,
-                total: total, 
-                entrada: ent, 
-                cuotas: cuotas, 
-                data: new Date().toISOString()
+                cliente: document.getElementById('v-cliente').value, ci: document.getElementById('v-ci').value,
+                fotos: urls, landId: tId, landNome: terreno.nome, moneda: terreno.moneda,
+                total: total, entrada: ent, cuotas: cuotas, data: new Date().toISOString()
             };
-
             await db.createDocument(DB_ID, COL_VENDAS, ID.unique(), { dados: JSON.stringify(venda) });
-            
-            // Atualizar terreno para vendido
             terreno.estado = 'Vendido';
             await db.updateDocument(DB_ID, COL_TERRENOS, tId, { dados: JSON.stringify(terreno) });
-            
-            closeModal('modal-venda'); 
-            loadData();
+            closeModal('modal-venda'); loadData();
         });
 
         function renderVendas() {
             const l1 = document.getElementById('lista-cobrancas'), l2 = document.getElementById('lista-historico');
             l1.innerHTML = ''; l2.innerHTML = '';
             const f = document.getElementById('search-venda').value.toLowerCase();
-            
             vendas.forEach(v => {
-                // Tabela Histórico
-                l2.innerHTML += `<tr>
-                    <td>${v.$id.substring(0,5)}</td>
-                    <td>${v.cliente}</td>
-                    <td>${v.landNome}</td>
-                    <td>${v.moeda} ${v.total}</td>
-                    <td>
-                        <button class="btn btn-w" onclick="openEdit('${v.$id}', 'sale')"><i class="fas fa-edit"></i></button> 
-                        <button class="btn btn-d" onclick="deleteItem('${v.$id}', 'sale')"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
-                
-                // Tabela Cobranças (Filtro e Lógica de Próxima Parcela)
+                l2.innerHTML += `<tr><td>${v.$id.substring(0,5)}</td><td>${v.cliente}</td><td>${v.landNome}</td><td>${v.moneda} ${v.total}</td><td><button class="btn btn-w" onclick="openEdit('${v.$id}', 'sale')"><i class="fas fa-edit"></i></button> <button class="btn btn-d" onclick="deleteItem('${v.$id}', 'sale')"><i class="fas fa-trash"></i></button></td></tr>`;
                 if (!v.cliente.toLowerCase().includes(f)) return;
                 let pen = v.cuotas.find(c => !c.pago);
-                
                 if (pen) {
                     let cor = (new Date(pen.venc) < new Date()) ? 'red' : 'black';
-                    l1.innerHTML += `<tr>
-                        <td>${v.cliente}</td>
-                        <td>${v.landNome}</td>
-                        <td>${pen.n}/${v.cuotas.length}</td>
-                        <td style="color:${cor}">${pen.venc}</td>
-                        <td>${v.moeda} ${pen.valor.toFixed(2)}</td>
-                        <td><button class="btn btn-s" onclick="openPagar('${v.$id}', ${pen.n})">Cobrar</button></td>
-                    </tr>`;
+                    l1.innerHTML += `<tr><td>${v.cliente}</td><td>${v.landNome}</td><td>${pen.n}/${v.cuotas.length}</td><td style="color:${cor}">${pen.venc}</td><td>${v.moneda} ${pen.valor.toFixed(2)}</td><td><button class="btn btn-s" onclick="openPagar('${v.$id}', ${pen.n})">Cobrar</button></td></tr>`;
                 }
             });
         }
 
-        // ==========================================
-        // 6. PAGOS & AMORTIZAÇÃO
-        // ==========================================
         window.openPagar = (vId, n) => {
             const v = vendas.find(x => x.$id === vId);
             const c = v.cuotas.find(x => x.n === n);
-            document.getElementById('p-venda-id').value = vId;
-            document.getElementById('p-cuota-idx').value = v.cuotas.indexOf(c);
-            document.getElementById('p-valor-display').innerText = v.moeda + ' ' + c.valor.toFixed(2);
+            document.getElementById('p-venda-id').value = vId; document.getElementById('p-cuota-idx').value = v.cuotas.indexOf(c);
+            document.getElementById('p-valor-display').innerText = v.moneda + ' ' + c.valor.toFixed(2);
             document.getElementById('p-valor-real').value = c.valor.toFixed(2);
             document.getElementById('p-data').value = new Date().toISOString().split('T')[0];
-            document.getElementById('div-tc').classList.toggle('hidden', v.moeda !== 'USD');
+            document.getElementById('div-tc').classList.toggle('hidden', v.moneda !== 'USD');
             document.getElementById('modal-pagar').classList.remove('hidden');
         }
 
@@ -673,48 +391,28 @@
             const idx = parseInt(document.getElementById('p-cuota-idx').value);
             const pago = parseFloat(document.getElementById('p-valor-real').value);
             const tc = parseFloat(document.getElementById('p-tc').value);
-            
             const v = vendas.find(x => x.$id === vId);
             let saldo = pago, i = idx;
-            
-            // Algoritmo de Amortização (Paga atual e abate das próximas)
             while(saldo > 0.1 && i < v.cuotas.length) {
                 let c = v.cuotas[i];
                 if(c.pago) { i++; continue; }
-                
-                if(saldo >= c.valor) { 
-                    saldo -= c.valor; 
-                    c.pago = true; 
-                    c.valor_pago = c.valor; 
-                    c.tc = tc; 
-                } else { 
-                    c.valor -= saldo; 
-                    saldo = 0; 
-                }
+                if(saldo >= c.valor) { saldo -= c.valor; c.pago = true; c.valor_pago = c.valor; c.tc = tc; }
+                else { c.valor -= saldo; saldo = 0; }
                 i++;
             }
-            
             await db.updateDocument(DB_ID, COL_VENDAS, vId, { dados: JSON.stringify(v) });
-            closeModal('modal-pagar'); 
-            loadData();
+            closeModal('modal-pagar'); loadData();
         });
 
-        // ==========================================
-        // 7. EDICION & DELETE (GERAL)
-        // ==========================================
+        // --- GERAL ---
         window.openEdit = (id, type) => {
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
-            document.getElementById('e-id').value = id; 
-            document.getElementById('e-type').value = type;
+            document.getElementById('e-id').value = id; document.getElementById('e-type').value = type;
             document.getElementById('e-nome').value = (type === 'land') ? d.nome : d.cliente;
-            document.getElementById('e-valor').value = (type === 'land') ? d.preco : d.total;
+            document.getElementById('e-valor').value = (type === 'land') ? d.precio : d.total;
             document.getElementById('e-notas').value = (type === 'land') ? d.notas : '';
-            
-            // Galeria
-            const g = document.getElementById('e-gallery'); 
-            g.innerHTML = '';
+            const g = document.getElementById('e-gallery'); g.innerHTML = '';
             if(d.fotos) d.fotos.forEach((u, i) => g.innerHTML += `<div class="img-preview-box"><img src="${u}" onclick="window.open('${u}')"><div class="btn-del-img" onclick="remFoto('${id}', '${type}', ${i})">X</div></div>`);
-            
             document.getElementById('modal-edit').classList.remove('hidden');
         }
 
@@ -723,8 +421,7 @@
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
             d.fotos.splice(i, 1);
             await db.updateDocument(DB_ID, (type==='land'?COL_TERRENOS:COL_VENDAS), id, { dados: JSON.stringify(d) });
-            closeModal('modal-edit'); 
-            loadData();
+            closeModal('modal-edit'); loadData();
         }
 
         document.getElementById('form-edit').addEventListener('submit', async (e) => {
@@ -733,21 +430,11 @@
             const id = document.getElementById('e-id').value, type = document.getElementById('e-type').value;
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
             const urls = await uploadFiles(document.getElementById('e-new-files'));
-            
-            if(!d.fotos) d.fotos = []; 
-            d.fotos = [...d.fotos, ...urls];
-            
-            if(type === 'land') { 
-                d.nome = document.getElementById('e-nome').value; 
-                d.preco = parseFloat(document.getElementById('e-valor').value); 
-                d.notas = document.getElementById('e-notas').value; 
-            } else { 
-                d.cliente = document.getElementById('e-nome').value; 
-            }
-            
+            if(!d.fotos) d.fotos = []; d.fotos = [...d.fotos, ...urls];
+            if(type === 'land') { d.nome = document.getElementById('e-nome').value; d.precio = parseFloat(document.getElementById('e-valor').value); d.notas = document.getElementById('e-notas').value; }
+            else { d.cliente = document.getElementById('e-nome').value; }
             await db.updateDocument(DB_ID, (type==='land'?COL_TERRENOS:COL_VENDAS), id, { dados: JSON.stringify(d) });
-            closeModal('modal-edit'); 
-            loadData();
+            closeModal('modal-edit'); loadData();
         });
 
         window.deleteItem = async (id, type) => {
@@ -756,10 +443,7 @@
             if(type === 'sale') {
                 const v = vendas.find(x => x.$id === id);
                 const t = terrenos.find(x => x.$id === v.landId);
-                if(t) { 
-                    t.estado = 'Disponible'; 
-                    await db.updateDocument(DB_ID, COL_TERRENOS, t.$id, { dados: JSON.stringify(t) }); 
-                }
+                if(t) { t.estado = 'Disponible'; await db.updateDocument(DB_ID, COL_TERRENOS, t.$id, { dados: JSON.stringify(t) }); }
             }
             await db.deleteDocument(DB_ID, (type==='land'?COL_TERRENOS:COL_VENDAS), id);
             loadData();
@@ -767,63 +451,34 @@
 
         window.verDetalles = (id, type) => {
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
-            let imgs = ''; 
-            if(d.fotos) d.fotos.forEach(u => imgs += `<img src="${u}" class="img-full" onclick="window.open('${u}')">`);
+            let imgs = ''; if(d.fotos) d.fotos.forEach(u => imgs += `<img src="${u}" class="img-full" onclick="window.open('${u}')">`);
             const c = document.getElementById('detalles-contenido');
-            
-            if(type === 'land') {
-                c.innerHTML = `<h4>${d.nome}</h4><p>Estado: ${d.estado}</p><p>Precio: ${d.moeda} ${d.preco}</p><p>${d.notas}</p><hr>${imgs}`;
-            } else {
-                c.innerHTML = `<h4>Cliente: ${d.cliente}</h4><p>CI: ${d.ci}</p><hr>${imgs}`;
-            }
+            c.innerHTML = (type==='land') ? `<h4>${d.nome}</h4><p>Estado: ${d.estado}</p><p>Precio: ${d.moneda} ${d.precio}</p><p>${d.notas}</p><hr>${imgs}` : `<h4>Cliente: ${d.cliente}</h4><p>CI: ${d.ci}</p><hr>${imgs}`;
             document.getElementById('modal-detalles').classList.remove('hidden');
         }
 
-        // --- DASHBOARD ---
         function updateDashboard() {
             document.getElementById('kpi-total').innerText = terrenos.length;
             document.getElementById('kpi-disp').innerText = terrenos.filter(t => t.estado === 'Disponible').length;
             let rec = 0;
             vendas.forEach(v => {
-                let pg = v.entrada; 
-                if(v.moeda==='USD') pg *= 6.96;
-                v.cuotas.forEach(c => { 
-                    if(c.pago) { 
-                        let val = c.valor_pago||c.valor; 
-                        if(v.moeda==='USD') val *= (c.tc||6.96); 
-                        pg += val; 
-                    } 
-                });
+                let pg = v.entrada; if(v.moneda==='USD') pg *= 6.96;
+                v.cuotas.forEach(c => { if(c.pago) { let val = c.valor_pago||c.valor; if(v.moneda==='USD') val *= (c.tc||6.96); pg += val; } });
                 rec += pg;
             });
             document.getElementById('kpi-money').innerText = "Bs " + rec.toLocaleString('pt-BR', {minimumFractionDigits: 2});
-            
-            // Charts
-            const ctx1 = document.getElementById('chartStatus').getContext('2d');
+            const ctx1 = document.getElementById('chart-fin').getContext('2d');
             if(window.ch1) window.ch1.destroy();
             window.ch1 = new Chart(ctx1, { type: 'doughnut', data: { labels: ['Disp','Vend'], datasets:[{data:[terrenos.filter(t=>t.estado==='Disponible').length, terrenos.filter(t=>t.estado==='Vendido').length], backgroundColor:['#27ae60','#7f8c8d']}] } });
         }
 
-        // --- UTILS ---
-        window.nav = (v) => { 
-            document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden')); 
-            document.getElementById('view-'+v).classList.remove('hidden'); 
-            if(v==='listado') renderTerrenos(); 
-            if(v==='ventas') renderVendas(); 
-        }
-        window.switchVendas = (t) => { 
-            document.getElementById('tab-vendas-resumo').classList.add('hidden'); 
-            document.getElementById('tab-vendas-hist').classList.add('hidden'); 
-            document.getElementById('tab-vendas-'+t).classList.remove('hidden'); 
-        }
+        window.nav = (v) => { document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden')); document.getElementById('view-'+v).classList.remove('hidden'); if(v==='listado') renderTerrenos(); if(v==='ventas') renderVendas(); }
+        window.switchVendas = (t) => { document.getElementById('tab-vendas-resumo').classList.add('hidden'); document.getElementById('tab-vendas-hist').classList.add('hidden'); document.getElementById('tab-vendas-'+t).classList.remove('hidden'); }
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
-        window.showPreview = (i, id, c) => document.getElementById(id).innerText = window.formatMoney(i.value, c);
-        
+        window.showPreview = (i, id, c) => document.getElementById(id).innerText = new Intl.NumberFormat('es-BO', { style: 'currency', currency: c }).format(i.value);
         window.calcLive = () => {
-            const p = parseFloat(document.getElementById('v-total').value)||0;
-            const e = parseFloat(document.getElementById('v-entrada').value)||0;
-            const c = parseInt(document.getElementById('v-ncuotas').value)||1;
-            document.getElementById('live-result-text').innerText = window.formatMoney((p-e)/c, 'REF');
+            const p = parseFloat(document.getElementById('v-total').value)||0, e = parseFloat(document.getElementById('v-entrada').value)||0, c = parseInt(document.getElementById('v-ncuotas').value)||1;
+            document.getElementById('live-result-text').innerText = new Intl.NumberFormat('es-BO', { style: 'currency', currency: document.getElementById('v-land-id').innerText.includes('USD')?'USD':'BOB' }).format((p-e)/c);
         }
     </script>
 </body>
