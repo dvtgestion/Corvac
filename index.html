@@ -1659,7 +1659,25 @@
         </div>
     </div>
 
-    <!-- NUEVO: Visor interno de PDF/Imagen (con Descargar + X) -->
+    
+  <!-- Modal Reporte de Pagos por Cliente -->
+  <div class="modal-backdrop hidden" id="modal-reporte-pagos">
+    <div class="modal" style="max-width: 980px;">
+      <div class="modal-head">
+        <h3 id="reporte-pagos-title">Reporte de pagos</h3>
+        <button class="btn btn-w btn-sm" onclick="closeModal('modal-reporte-pagos')"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="hint-box" id="reporte-pagos-subtitle" style="margin-bottom:12px;"></div>
+        <div id="reporte-pagos-content"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-w" onclick="closeModal('modal-reporte-pagos')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+<!-- NUEVO: Visor interno de PDF/Imagen (con Descargar + X) -->
     <div id="modal-fileview" class="modal hidden">
         <div class="modal-content" style="max-width:980px;">
             <div class="modal-header">
@@ -3109,6 +3127,7 @@
                     <td style="display:flex; gap:8px; flex-wrap:wrap;">
                         <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')"><i class="fas fa-edit"></i></button>
                         <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" title="Ver detalles"><i class="fas fa-eye"></i></button>
+                    <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openReportePagosCliente('${v.$id}')" title="Reporte de pagos"><i class="fas fa-file-invoice-dollar"></i></button>
                         ${hasDebt ? `<button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openRenegociar('${v.$id}')" title="Renegociar deuda"><i class="fas fa-arrows-rotate"></i></button>` : ``}
                         <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')"><i class="fas fa-trash"></i></button>
                     </td>
@@ -3179,36 +3198,92 @@
         };
 
         document.getElementById('form-pagar').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            document.getElementById('loader').classList.remove('hidden');
-            const vId = document.getElementById('p-venda-id').value;
-            const idx = parseInt(document.getElementById('p-cuota-idx').value);
-            const pago = parseFloat(document.getElementById('p-valor-real').value);
-            const tc = parseFloat(document.getElementById('p-tc').value);
-            const dataPago = document.getElementById('p-data').value;
+          e.preventDefault();
+          if (!PAGAR_TARGET_ID) return;
 
-            const v = vendas.find(x => x.$id === vId);
-            let saldo = pago, i = idx;
+          const v = vendas.find(x => x.$id === PAGAR_TARGET_ID);
+          if (!v) return;
 
-            while (saldo > 0.1 && i < v.cuotas.length) {
-                let c = v.cuotas[i];
-                if (c.pago) { i++; continue; }
-                if (saldo >= c.valor) {
-                    saldo -= c.valor;
-                    c.pago = true;
-                    c.valor_pago = c.valor;
-                    c.tc = tc;
-                    c.data_pago = dataPago;
-                } else {
-                    c.valor -= saldo;
-                    saldo = 0;
-                }
-                i++;
+          const pago = parseFloat(document.getElementById('pagar-monto').value);
+          const tcInput = document.getElementById('pagar-tc').value;
+          const tc = tcInput === '' ? null : parseFloat(tcInput);
+
+          let idx = parseInt(document.getElementById('pagar-cuota-idx').value);
+          if (isNaN(idx) || idx < 0) idx = 0;
+
+          if (!pago || pago <= 0) return toast('Monto inválido', 'warn');
+
+          const now = new Date().toISOString();
+          let saldo = pago;
+          let firstTarget = true; // la primera cuota pendiente se considera "Pago"; el resto, "Amortización"
+
+          for (let i = idx; i < v.cuotas.length; i++) {
+            if (saldo <= 0) break;
+
+            const c = v.cuotas[i];
+            if (c.pago) continue;
+
+            const antes = Number(c.valor || 0);
+            if (!c.pagos || !Array.isArray(c.pagos)) c.pagos = [];
+
+            if (saldo >= antes) {
+              // Pago total de esta cuota
+              c.pago = true;
+              c.valor_pago = antes;
+              c.data_pago = now;
+              c.tc = tc;
+
+              c.pagos.push({
+                fecha: now,
+                monto: antes,
+                tc,
+                tipo: firstTarget ? 'pago' : 'amortizacion',
+                antes,
+                despues: 0,
+                nota: firstTarget ? 'Pago de cuota' : 'Amortización (pago aplicado a cuotas futuras)'
+              });
+
+              saldo -= antes;
+              firstTarget = false;
+              continue;
             }
 
-            await db.updateDocument(DB_ID, COL_VENDAS, vId, { dados: JSON.stringify(v) });
-            closeModal('modal-pagar');
-            loadData();
+            // Pago parcial: reduce el valor restante de la cuota
+            const aplicado = saldo;
+            c.valor = Number((antes - aplicado).toFixed(2));
+            c.abonado = Number(((c.abonado || 0) + aplicado).toFixed(2));
+
+            c.pagos.push({
+              fecha: now,
+              monto: aplicado,
+              tc,
+              tipo: firstTarget ? 'pago_parcial' : 'amortizacion',
+              antes,
+              despues: c.valor,
+              nota: firstTarget ? 'Pago parcial (cuota queda pendiente)' : 'Amortización aplicada a cuota futura (reduce el valor de la cuota)'
+            });
+
+            saldo = 0;
+            firstTarget = false;
+          }
+
+          // Si sobra saldo, lo dejamos registrado como "saldo a favor" (no se asigna automáticamente a cuotas futuras)
+          if (saldo > 0) {
+            v.saldo_favor = Number(((v.saldo_favor || 0) + saldo).toFixed(2));
+            if (!v.saldo_favor_hist || !Array.isArray(v.saldo_favor_hist)) v.saldo_favor_hist = [];
+            v.saldo_favor_hist.push({ fecha: now, monto: saldo, tc, nota: 'Pago excedente (saldo a favor)' });
+            toast('Pago excedente: quedó como saldo a favor', 'warn');
+          }
+
+          // Recalcular estado / saldo
+          recomputeVenta(v);
+
+          await db.updateDocument(DB_ID, COL_SALES, v.$id, { dados: JSON.stringify(v) });
+          toast('Pago registrado', 'ok');
+
+          closeModal('modal-pagar');
+          renderVendas();
+          renderHistorico();
         });
 
         // ------------------------------
@@ -3569,6 +3644,187 @@
 
             document.getElementById('modal-detalles').classList.remove('hidden');
         };
+
+        // ===== Reporte de pagos por cliente (incluye amortizaciones / abonos parciales) =====
+        const _fmtDateTime = (iso) => {
+          if (!iso) return '';
+          try {
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return iso;
+            return d.toLocaleString('es-BO', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+          } catch { return iso; }
+        };
+
+        const _tipoPagoLabel = (tipo) => {
+          const map = {
+            pago: 'Pago',
+            pago_parcial: 'Pago parcial',
+            amortizacion: 'Amortización',
+            pago_legacy: 'Pago (registro anterior)',
+            saldo_favor: 'Saldo a favor'
+          };
+          return map[tipo] || tipo || '';
+        };
+
+        const _terrenoNombreDeVenta = (v) => {
+          const t = (window.terrenos || []).find(x => x.$id === v.terreno_id);
+          return t ? t.nombre : (v.terreno_nombre || v.terreno_id || '—');
+        };
+
+        const _pushPago = (cuota, entry) => {
+          if (!cuota.pagos || !Array.isArray(cuota.pagos)) cuota.pagos = [];
+          cuota.pagos.push(entry);
+        };
+
+        const _entriesPagoDeVenta = (v) => {
+          const entries = [];
+          const terrenoNom = _terrenoNombreDeVenta(v);
+          const cuotas = Array.isArray(v.cuotas) ? v.cuotas : [];
+          cuotas.forEach((c, idx) => {
+            const n = (c.nro ?? c.numero ?? (idx + 1));
+            if (Array.isArray(c.pagos) && c.pagos.length) {
+              c.pagos.forEach(p => {
+                entries.push({
+                  fecha: p.fecha || p.ts || '',
+                  monto: Number(p.monto || 0),
+                  tc: (p.tc ?? ''),
+                  tipo: p.tipo || '',
+                  nota: p.nota || '',
+                  antes: (p.antes ?? ''),
+                  despues: (p.despues ?? ''),
+                  cuota: n,
+                  venc: c.venc || c.vencimiento || '',
+                  terreno: terrenoNom,
+                  venta_id: v.$id
+                });
+              });
+            } else if (c.pago) {
+              // Compatibilidad con registros antiguos que solo guardaban data_pago/valor_pago
+              entries.push({
+                fecha: c.data_pago || v.fecha || '',
+                monto: Number(c.valor_pago || c.valor || 0),
+                tc: (c.tc ?? ''),
+                tipo: 'pago_legacy',
+                nota: '',
+                antes: '',
+                despues: '',
+                cuota: n,
+                venc: c.venc || c.vencimiento || '',
+                terreno: terrenoNom,
+                venta_id: v.$id
+              });
+            }
+          });
+          // Saldo a favor (si existe)
+          if (Array.isArray(v.saldo_favor_hist) && v.saldo_favor_hist.length) {
+            v.saldo_favor_hist.forEach(s => {
+              entries.push({
+                fecha: s.fecha || '',
+                monto: Number(s.monto || 0),
+                tc: (s.tc ?? ''),
+                tipo: 'saldo_favor',
+                nota: s.nota || '',
+                antes: '',
+                despues: '',
+                cuota: '—',
+                venc: '',
+                terreno: terrenoNom,
+                venta_id: v.$id
+              });
+            });
+          }
+
+          return entries;
+        };
+
+        window.openReportePagosCliente = (saleId) => {
+          const v0 = (window.vendas || []).find(x => x.$id === saleId);
+          if (!v0) return toast('Venta no encontrada', 'warn');
+
+          const cliente = (v0.cliente || '').trim();
+          const ventasCliente = (window.vendas || []).filter(v => (v.cliente || '').trim().toLowerCase() === cliente.toLowerCase());
+
+          let entries = [];
+          ventasCliente.forEach(v => { entries = entries.concat(_entriesPagoDeVenta(v)); });
+
+          // Ordenar por fecha (asc). Si falta fecha, se va al final.
+          entries.sort((a, b) => {
+            const da = a.fecha ? new Date(a.fecha).getTime() : Infinity;
+            const db = b.fecha ? new Date(b.fecha).getTime() : Infinity;
+            return da - db;
+          });
+
+          const title = document.getElementById('reporte-pagos-title');
+          const subtitle = document.getElementById('reporte-pagos-subtitle');
+          const content = document.getElementById('reporte-pagos-content');
+
+          title.textContent = `Reporte de pagos — ${cliente || 'Cliente'}`;
+          subtitle.innerHTML = `
+            <div><b>Cliente:</b> ${esc(cliente || '—')}</div>
+            <div><b>Ventas encontradas:</b> ${ventasCliente.length}</div>
+            <div style="opacity:.9; margin-top:6px;">Amortización = monto extra aplicado a cuotas futuras (reduce el valor de la próxima cuota).</div>
+          `;
+
+          if (!entries.length) {
+            content.innerHTML = `<div class="hint-box">No hay pagos registrados todavía para este cliente.</div>`;
+            openModal('modal-reporte-pagos');
+            return;
+          }
+
+          const total = entries.reduce((s, e) => s + (Number(e.monto) || 0), 0);
+
+          let html = `
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+              <div class="chip"><b>Total pagado:</b> ${fmtBs(total)}</div>
+              <div class="chip"><b>Movimientos:</b> ${entries.length}</div>
+            </div>
+            <div style="overflow:auto;">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th style="min-width:160px;">Fecha</th>
+                    <th style="min-width:180px;">Terreno</th>
+                    <th style="min-width:70px;">Cuota</th>
+                    <th style="min-width:140px;">Tipo</th>
+                    <th style="min-width:120px;">Monto</th>
+                    <th style="min-width:80px;">TC</th>
+                    <th style="min-width:110px;">Antes</th>
+                    <th style="min-width:110px;">Después</th>
+                    <th style="min-width:200px;">Nota</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
+
+          entries.forEach(e => {
+            const antes = (e.antes === '' || e.antes === null || e.antes === undefined) ? '' : fmtBs(Number(e.antes));
+            const despues = (e.despues === '' || e.despues === null || e.despues === undefined) ? '' : fmtBs(Number(e.despues));
+            html += `
+              <tr>
+                <td>${esc(_fmtDateTime(e.fecha))}</td>
+                <td>${esc(e.terreno || '—')}</td>
+                <td>${esc(String(e.cuota ?? '—'))}</td>
+                <td>${esc(_tipoPagoLabel(e.tipo))}</td>
+                <td><b>${fmtBs(Number(e.monto) || 0)}</b></td>
+                <td>${esc(String(e.tc ?? ''))}</td>
+                <td>${esc(antes)}</td>
+                <td>${esc(despues)}</td>
+                <td>${esc(e.nota || '')}</td>
+              </tr>
+            `;
+          });
+
+          html += `
+                </tbody>
+              </table>
+            </div>
+          `;
+
+          content.innerHTML = html;
+          openModal('modal-reporte-pagos');
+        };
+
+
 
         window.nav = (v) => {
             document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden'));
