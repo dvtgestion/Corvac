@@ -3635,9 +3635,8 @@
             document.getElementById('modal-detalles').classList.remove('hidden');
         };
 
-             // ===== Reporte de Pagos (CORREGIDO) =====
+                    // ===== Reporte de Pagos (CORREGIDO - COM ENTRADA) =====
 
-        // Função auxiliar para evitar erro de texto vazio
         function safeStr(str) { return str || ''; }
 
         const _fmtDateTime = (iso) => {
@@ -3655,23 +3654,36 @@
             pago_parcial: 'Pago parcial',
             amortizacion: 'Amortización',
             pago_legacy: 'Pago (registro anterior)',
-            saldo_favor: 'Saldo a favor'
+            saldo_favor: 'Saldo a favor',
+            entrada: 'Entrada / Inicial' // <--- ADICIONADO
           };
           return map[tipo] || tipo || '';
         };
 
         const _entriesPagoDeVenta = (v) => {
           const entries = [];
-          // Busca o nome do terreno na lista global usando landId
           const t = (window.terrenos || []).find(x => x.$id === v.landId);
           const terrenoNom = t ? t.nome : (v.landNome || '—');
 
+          // --- 1. ADICIONAR A ENTRADA (Correção) ---
+          if (v.entrada && parseFloat(v.entrada) > 0) {
+              entries.push({
+                  fecha: v.fecha_entrada || v.data || '', // Data da entrada ou data da venda
+                  monto: parseFloat(v.entrada),
+                  tc: v.tc_venta || null, // Usa o TC registrado no momento da venda
+                  tipo: 'entrada',
+                  nota: 'Pago Inicial (Entrada)',
+                  cuota: 'Entrada',
+                  terreno: terrenoNom
+              });
+          }
+
+          // --- 2. ADICIONAR AS CUOTAS ---
           const cuotas = Array.isArray(v.cuotas) ? v.cuotas : [];
           
           cuotas.forEach((c, idx) => {
             const n = (c.n || (idx + 1));
             
-            // Caso 1: Pagamentos detalhados (novo sistema)
             if (Array.isArray(c.pagos) && c.pagos.length) {
               c.pagos.forEach(p => {
                 entries.push({
@@ -3685,7 +3697,6 @@
                 });
               });
             } 
-            // Caso 2: Pagamento legado (sistema antigo)
             else if (c.pago) {
               entries.push({
                 fecha: c.data_pago || v.data || '',
@@ -3699,7 +3710,7 @@
             }
           });
 
-          // Saldo a favor
+          // --- 3. ADICIONAR SALDO A FAVOR ---
           if (Array.isArray(v.saldo_favor_hist) && v.saldo_favor_hist.length) {
             v.saldo_favor_hist.forEach(s => {
               entries.push({
@@ -3716,7 +3727,7 @@
           return entries;
         };
 
-                           window.openReportePagosCliente = (saleId) => {
+        window.openReportePagosCliente = (saleId) => {
           const v0 = vendas.find(x => x.$id === saleId);
           
           if (!v0) { 
@@ -3762,7 +3773,6 @@
              else totalRefBs += val;
           });
 
-          // AQUI ESTÁ A MUDANÇA: Botão adicionado na variável 'html'
           let html = `
             <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                <span class="status-badge status-disponible" style="font-size:1rem;">
@@ -3813,8 +3823,8 @@
           content.innerHTML = html;
           document.getElementById('modal-reporte-pagos').classList.remove('hidden');
         };
-            
-                // ===== EXPORTAR PDF INDIVIDUAL (Cliente) =====
+
+        // ===== EXPORTAR PDF INDIVIDUAL (Cliente) =====
         window.exportReporteClientePDF = (saleId) => {
             try {
                 // 1. Buscar Dados
@@ -3830,11 +3840,11 @@
                 let entries = [];
                 ventasCliente.forEach(v => { entries = entries.concat(_entriesPagoDeVenta(v)); });
 
-                // Ordenar por data
+                // Ordenar por data (Crescente para PDF fica melhor: Entrada primeiro)
                 entries.sort((a, b) => {
                     const da = a.fecha ? new Date(a.fecha).getTime() : 0;
                     const db = b.fecha ? new Date(b.fecha).getTime() : 0;
-                    return da - db; // Crescente para o PDF fica melhor de ler a história
+                    return da - db; 
                 });
 
                 // 2. Cabeçalho do PDF
@@ -3850,13 +3860,11 @@
                 let totalRefBs = 0;
                 
                 const tableBody = entries.map(e => {
-                    // Cálculo do total global (em Bs)
                     const val = Number(e.monto) || 0;
                     const tc = parseFloat(e.tc);
                     if (tc && tc > 0) totalRefBs += val * tc;
                     else totalRefBs += val;
 
-                    // Formatação da linha
                     const isUsd = (tc && tc > 0);
                     const symbol = isUsd ? '$us' : 'Bs';
                     const labelTc = isUsd ? tc.toFixed(2) : '-';
@@ -3882,8 +3890,8 @@
                     styles: { fontSize: 9, cellPadding: 3 },
                     headStyles: { fillColor: [44, 62, 80], textColor: 255, fontStyle: 'bold' },
                     columnStyles: {
-                        4: { fontStyle: 'bold', halign: 'right' }, // Coluna Monto alinhada à direita
-                        5: { halign: 'center' } // TC centralizado
+                        4: { fontStyle: 'bold', halign: 'right' }, 
+                        5: { halign: 'center' }
                     }
                 });
 
@@ -3903,7 +3911,6 @@
                 alert('Error al generar PDF: ' + err.message);
             }
         };
-
 
         window.nav = (v) => {
             document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden'));
