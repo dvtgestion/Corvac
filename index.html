@@ -3716,12 +3716,19 @@
           return entries;
         };
 
-        window.openReportePagosCliente = (saleId) => {
-          const v0 = (window.vendas || []).find(x => x.$id === saleId);
-          if (!v0) { alert('Venta no encontrada'); return; }
+                window.openReportePagosCliente = (saleId) => {
+          // 1. Tenta encontrar a venda na variável global 'vendas' diretamente
+          const v0 = vendas.find(x => x.$id === saleId);
+          
+          if (!v0) { 
+             console.error("ID procurado:", saleId);
+             console.log("Lista de vendas disponível:", vendas);
+             alert('Error: Venta no encontrada en memoria. (ID: ' + saleId + ')'); 
+             return; 
+          }
 
           const cliente = (v0.cliente || '').trim();
-          const ventasCliente = (window.vendas || []).filter(v => (v.cliente || '').trim().toLowerCase() === cliente.toLowerCase());
+          const ventasCliente = vendas.filter(v => (v.cliente || '').trim().toLowerCase() === cliente.toLowerCase());
 
           let entries = [];
           ventasCliente.forEach(v => { entries = entries.concat(_entriesPagoDeVenta(v)); });
