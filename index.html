@@ -3201,93 +3201,79 @@
             document.getElementById('modal-pagar').classList.remove('hidden');
         };
 
+        // ===== Registrar Pago (CORREGIDO) =====
         document.getElementById('form-pagar').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          if (!PAGAR_TARGET_ID) return;
+            e.preventDefault();
+            
+            // 1. Obter IDs corretos dos inputs ocultos
+            const vId = document.getElementById('p-venda-id').value;
+            const idx = parseInt(document.getElementById('p-cuota-idx').value);
 
-          const v = vendas.find(x => x.$id === PAGAR_TARGET_ID);
-          if (!v) return;
+            if (!vId) return;
 
-          const pago = parseFloat(document.getElementById('pagar-monto').value);
-          const tcInput = document.getElementById('pagar-tc').value;
-          const tc = tcInput === '' ? null : parseFloat(tcInput);
+            // 2. Encontrar a venda
+            const v = vendas.find(x => x.$id === vId);
+            if (!v) { alert('Venta no encontrada'); return; }
 
-          let idx = parseInt(document.getElementById('pagar-cuota-idx').value);
-          if (isNaN(idx) || idx < 0) idx = 0;
-
-          if (!pago || pago <= 0) return toast('Monto inválido', 'warn');
-
-          const now = new Date().toISOString();
-          let saldo = pago;
-          let firstTarget = true; // la primera cuota pendiente se considera "Pago"; el resto, "Amortización"
-
-          for (let i = idx; i < v.cuotas.length; i++) {
-            if (saldo <= 0) break;
-
-            const c = v.cuotas[i];
-            if (c.pago) continue;
-
-            const antes = Number(c.valor || 0);
-            if (!c.pagos || !Array.isArray(c.pagos)) c.pagos = [];
-
-            if (saldo >= antes) {
-              // Pago total de esta cuota
-              c.pago = true;
-              c.valor_pago = antes;
-              c.data_pago = now;
-              c.tc = tc;
-
-              c.pagos.push({
-                fecha: now,
-                monto: antes,
-                tc,
-                tipo: firstTarget ? 'pago' : 'amortizacion',
-                antes,
-                despues: 0,
-                nota: firstTarget ? 'Pago de cuota' : 'Amortización (pago aplicado a cuotas futuras)'
-              });
-
-              saldo -= antes;
-              firstTarget = false;
-              continue;
+            // 3. Obter valores do formulário (IDs corretos)
+            const inputValor = document.getElementById('p-valor-real');
+            const inputData = document.getElementById('p-data');
+            const inputTc = document.getElementById('p-tc');
+            
+            const valorPago = parseFloat(inputValor.value);
+            const dataPago = inputData.value; // YYYY-MM-DD
+            
+            // Verifica se TC está visível/preenchido
+            let tcVal = null;
+            if (!document.getElementById('div-tc').classList.contains('hidden')) {
+                tcVal = parseFloat(inputTc.value);
             }
 
-            // Pago parcial: reduce el valor restante de la cuota
-            const aplicado = saldo;
-            c.valor = Number((antes - aplicado).toFixed(2));
-            c.abonado = Number(((c.abonado || 0) + aplicado).toFixed(2));
+            if (!valorPago || valorPago <= 0) {
+                alert('Por favor, ingrese un monto válido.');
+                return;
+            }
 
-            c.pagos.push({
-              fecha: now,
-              monto: aplicado,
-              tc,
-              tipo: firstTarget ? 'pago_parcial' : 'amortizacion',
-              antes,
-              despues: c.valor,
-              nota: firstTarget ? 'Pago parcial (cuota queda pendiente)' : 'Amortización aplicada a cuota futura (reduce el valor de la cuota)'
-            });
+            document.getElementById('loader').classList.remove('hidden');
 
-            saldo = 0;
-            firstTarget = false;
-          }
+            try {
+                // 4. Atualizar a parcela (Cuota)
+                if (v.cuotas && v.cuotas[idx]) {
+                    const c = v.cuotas[idx];
+                    
+                    c.pago = true;
+                    c.valor_pago = valorPago; 
+                    c.data_pago = dataPago;   
+                    c.tc = tcVal;             
 
-          // Si sobra saldo, lo dejamos registrado como "saldo a favor" (no se asigna automáticamente a cuotas futuras)
-          if (saldo > 0) {
-            v.saldo_favor = Number(((v.saldo_favor || 0) + saldo).toFixed(2));
-            if (!v.saldo_favor_hist || !Array.isArray(v.saldo_favor_hist)) v.saldo_favor_hist = [];
-            v.saldo_favor_hist.push({ fecha: now, monto: saldo, tc, nota: 'Pago excedente (saldo a favor)' });
-            toast('Pago excedente: quedó como saldo a favor', 'warn');
-          }
+                    // Histórico de pagamentos
+                    if (!c.pagos) c.pagos = [];
+                    c.pagos.push({
+                        fecha: new Date().toISOString(),
+                        monto: valorPago,
+                        tc: tcVal,
+                        tipo: 'pago',
+                        nota: 'Pago registrado manualmente',
+                        antes: c.valor,
+                        despues: 0
+                    });
+                }
 
-          // Recalcular estado / saldo
-          recomputeVenta(v);
+                // 5. Salvar no banco de dados
+                await db.updateDocument(DB_ID, COL_VENDAS, vId, { dados: JSON.stringify(v) });
 
-          await db.updateDocument(DB_ID, COL_SALES, v.$id, { dados: JSON.stringify(v) });
-          toast('Pago registrado', 'ok');
+                // 6. Limpeza e Reload
+                closeModal('modal-pagar');
+                document.getElementById('form-pagar').reset();
+                alert('Pago registrado con éxito!');
+                loadData(); 
 
-          closeModal('modal-pagar');
-          renderVendas();
-          renderHistorico();
+            } catch (err) {
+                console.error(err);
+                alert('Error al guardar el pago: ' + err.message);
+            } finally {
+                document.getElementById('loader').classList.add('hidden');
+            }
         });
 
         // ------------------------------
