@@ -3716,13 +3716,12 @@
           return entries;
         };
 
-                window.openReportePagosCliente = (saleId) => {
+                        window.openReportePagosCliente = (saleId) => {
           // 1. Tenta encontrar a venda na variável global 'vendas' diretamente
           const v0 = vendas.find(x => x.$id === saleId);
           
           if (!v0) { 
              console.error("ID procurado:", saleId);
-             console.log("Lista de vendas disponível:", vendas);
              alert('Error: Venta no encontrada en memoria. (ID: ' + saleId + ')'); 
              return; 
           }
@@ -3756,11 +3755,24 @@
             return;
           }
 
-          const total = entries.reduce((s, e) => s + (Number(e.monto) || 0), 0);
+          // CALCULAR TOTAL CONVERTIDO (Para não somar Dólar com Boliviano incorretamente)
+          let totalRefBs = 0;
+          entries.forEach(e => {
+             const val = Number(e.monto) || 0;
+             const tc = parseFloat(e.tc);
+             // Se tem TC (é dólar), multiplica. Se não, assume Bs.
+             if (tc && tc > 0) {
+                 totalRefBs += val * tc;
+             } else {
+                 totalRefBs += val;
+             }
+          });
 
           let html = `
             <div style="margin-bottom:12px;">
-               <span class="status-badge status-disponible" style="font-size:1rem;">Total Pagado: Bs ${NF2.format(total)}</span>
+               <span class="status-badge status-disponible" style="font-size:1rem;">
+                 Total Pagado (Ref. Global): Bs ${NF2.format(totalRefBs)}
+               </span>
             </div>
             <div class="table-wrap">
               <table>
@@ -3771,6 +3783,7 @@
                     <th>Cuota</th>
                     <th>Tipo</th>
                     <th>Monto</th>
+                    <th>TC</th>
                     <th>Nota</th>
                   </tr>
                 </thead>
@@ -3778,13 +3791,22 @@
           `;
 
           entries.forEach(e => {
+            // LÓGICA DA MOEDA NA LINHA
+            const tcVal = parseFloat(e.tc);
+            const isUsd = (tcVal && tcVal > 0);
+            
+            // Se for USD, mostra $us. Se for Bs, mostra Bs.
+            const symbol = isUsd ? '$us' : 'Bs';
+            const styleColor = isUsd ? 'color:#0f172a;' : 'color:var(--success);'; // Dólar preto, Bs verde (exemplo)
+
             html += `
               <tr>
                 <td>${safeStr(_fmtDateTime(e.fecha))}</td>
                 <td>${safeStr(e.terreno)}</td>
                 <td>${safeStr(String(e.cuota))}</td>
                 <td>${safeStr(_tipoPagoLabel(e.tipo))}</td>
-                <td style="font-weight:900; color:var(--success);">Bs ${NF2.format(Number(e.monto) || 0)}</td>
+                <td style="font-weight:900; ${styleColor}">${symbol} ${NF2.format(Number(e.monto) || 0)}</td>
+                <td>${safeStr(String(e.tc ?? ''))}</td>
                 <td style="font-size:0.85rem; color:#64748b;">${safeStr(e.nota)}</td>
               </tr>
             `;
@@ -3794,7 +3816,6 @@
           content.innerHTML = html;
           document.getElementById('modal-reporte-pagos').classList.remove('hidden');
         };
-
 
         window.nav = (v) => {
             document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden'));
