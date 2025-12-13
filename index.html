@@ -3716,8 +3716,7 @@
           return entries;
         };
 
-                        window.openReportePagosCliente = (saleId) => {
-          // 1. Tenta encontrar a venda na variável global 'vendas' diretamente
+                           window.openReportePagosCliente = (saleId) => {
           const v0 = vendas.find(x => x.$id === saleId);
           
           if (!v0) { 
@@ -3732,7 +3731,7 @@
           let entries = [];
           ventasCliente.forEach(v => { entries = entries.concat(_entriesPagoDeVenta(v)); });
 
-          // Ordenar: mais recente primeiro
+          // Ordenar: mais recente primeiro na tela
           entries.sort((a, b) => {
             const da = a.fecha ? new Date(a.fecha).getTime() : 0;
             const db = b.fecha ? new Date(b.fecha).getTime() : 0;
@@ -3755,25 +3754,26 @@
             return;
           }
 
-          // CALCULAR TOTAL CONVERTIDO (Para não somar Dólar com Boliviano incorretamente)
           let totalRefBs = 0;
           entries.forEach(e => {
              const val = Number(e.monto) || 0;
              const tc = parseFloat(e.tc);
-             // Se tem TC (é dólar), multiplica. Se não, assume Bs.
-             if (tc && tc > 0) {
-                 totalRefBs += val * tc;
-             } else {
-                 totalRefBs += val;
-             }
+             if (tc && tc > 0) totalRefBs += val * tc;
+             else totalRefBs += val;
           });
 
+          // AQUI ESTÁ A MUDANÇA: Botão adicionado na variável 'html'
           let html = `
-            <div style="margin-bottom:12px;">
+            <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                <span class="status-badge status-disponible" style="font-size:1rem;">
-                 Total Pagado (Ref. Global): Bs ${NF2.format(totalRefBs)}
+                 Total (Ref. Global): Bs ${NF2.format(totalRefBs)}
                </span>
+               
+               <button class="btn btn-p btn-sm" onclick="exportReporteClientePDF('${saleId}')">
+                  <i class="fas fa-file-pdf"></i> Descargar PDF
+               </button>
             </div>
+
             <div class="table-wrap">
               <table>
                 <thead>
@@ -3791,13 +3791,10 @@
           `;
 
           entries.forEach(e => {
-            // LÓGICA DA MOEDA NA LINHA
             const tcVal = parseFloat(e.tc);
             const isUsd = (tcVal && tcVal > 0);
-            
-            // Se for USD, mostra $us. Se for Bs, mostra Bs.
             const symbol = isUsd ? '$us' : 'Bs';
-            const styleColor = isUsd ? 'color:#0f172a;' : 'color:var(--success);'; // Dólar preto, Bs verde (exemplo)
+            const styleColor = isUsd ? 'color:#0f172a;' : 'color:var(--success);';
 
             html += `
               <tr>
@@ -3816,6 +3813,97 @@
           content.innerHTML = html;
           document.getElementById('modal-reporte-pagos').classList.remove('hidden');
         };
+            
+                // ===== EXPORTAR PDF INDIVIDUAL (Cliente) =====
+        window.exportReporteClientePDF = (saleId) => {
+            try {
+                // 1. Buscar Dados
+                const v0 = vendas.find(x => x.$id === saleId);
+                if (!v0) { alert('Venta no encontrada'); return; }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                const cliente = (v0.cliente || '').trim();
+                const ventasCliente = vendas.filter(v => (v.cliente || '').trim().toLowerCase() === cliente.toLowerCase());
+
+                let entries = [];
+                ventasCliente.forEach(v => { entries = entries.concat(_entriesPagoDeVenta(v)); });
+
+                // Ordenar por data
+                entries.sort((a, b) => {
+                    const da = a.fecha ? new Date(a.fecha).getTime() : 0;
+                    const db = b.fecha ? new Date(b.fecha).getTime() : 0;
+                    return da - db; // Crescente para o PDF fica melhor de ler a história
+                });
+
+                // 2. Cabeçalho do PDF
+                doc.setFontSize(16);
+                doc.text('Historial de Pagos', 14, 20);
+                
+                doc.setFontSize(11);
+                doc.setTextColor(100);
+                doc.text(`Cliente: ${cliente}`, 14, 30);
+                doc.text(`Fecha emisión: ${new Date().toLocaleDateString('es-BO')}`, 14, 36);
+
+                // 3. Preparar linhas da tabela
+                let totalRefBs = 0;
+                
+                const tableBody = entries.map(e => {
+                    // Cálculo do total global (em Bs)
+                    const val = Number(e.monto) || 0;
+                    const tc = parseFloat(e.tc);
+                    if (tc && tc > 0) totalRefBs += val * tc;
+                    else totalRefBs += val;
+
+                    // Formatação da linha
+                    const isUsd = (tc && tc > 0);
+                    const symbol = isUsd ? '$us' : 'Bs';
+                    const labelTc = isUsd ? tc.toFixed(2) : '-';
+                    const dataFmt = e.fecha ? new Date(e.fecha).toLocaleDateString('es-BO') : '-';
+
+                    return [
+                        dataFmt,
+                        e.terreno || '-',
+                        e.cuota || '-',
+                        _tipoPagoLabel(e.tipo),
+                        `${symbol} ${NF2.format(val)}`,
+                        labelTc,
+                        e.nota || ''
+                    ];
+                });
+
+                // 4. Gerar Tabela
+                doc.autoTable({
+                    startY: 45,
+                    head: [['Fecha', 'Terreno', 'Cuota', 'Tipo', 'Monto', 'TC', 'Nota']],
+                    body: tableBody,
+                    theme: 'grid',
+                    styles: { fontSize: 9, cellPadding: 3 },
+                    headStyles: { fillColor: [44, 62, 80], textColor: 255, fontStyle: 'bold' },
+                    columnStyles: {
+                        4: { fontStyle: 'bold', halign: 'right' }, // Coluna Monto alinhada à direita
+                        5: { halign: 'center' } // TC centralizado
+                    }
+                });
+
+                // 5. Rodapé com Total
+                const finalY = doc.lastAutoTable.finalY + 10;
+                doc.setFontSize(11);
+                doc.setTextColor(0);
+                doc.setFont(undefined, 'bold');
+                doc.text(`Total Pagado (Ref. Global): Bs ${NF2.format(totalRefBs)}`, 14, finalY);
+
+                // 6. Salvar
+                const nomeArquivo = `Historial_${cliente.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+                doc.save(nomeArquivo);
+
+            } catch (err) {
+                console.error(err);
+                alert('Error al generar PDF: ' + err.message);
+            }
+        };
+
 
         window.nav = (v) => {
             document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden'));
