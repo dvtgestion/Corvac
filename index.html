@@ -2623,7 +2623,7 @@
             loadData();
         });
 
-        function renderTerrenos() {
+                function renderTerrenos() {
             const b = document.getElementById('lista-terrenos');
             b.innerHTML = '';
             const f = document.getElementById('search-land').value.toLowerCase();
@@ -2631,9 +2631,9 @@
             terrenos.forEach(t => {
                 if (!t.nome.toLowerCase().includes(f) && !t.codigo.toLowerCase().includes(f)) return;
 
+                // --- Lógica da Imagem (Thumbnail) ---
                 const files = normalizeFotos(t.fotos);
                 const fileCount = files.length;
-
                 const images = files.filter(x => !isPdfFile(x) && isImageByNameOrMime(x));
                 const cover = images[0] || files.find(x => !isPdfFile(x)) || files[0] || null;
 
@@ -2647,25 +2647,28 @@
                         thumbInner = `<img src="${url}" class="thumb-small" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<div class=&quot;thumb-pdf&quot;><i class=&quot;fas fa-image&quot;></i></div>';">`;
                     }
                 }
-
                 const badge = (fileCount > 1) ? `<span class="file-count">+${fileCount}</span>` : '';
-                const imgHtml = `<div class="thumb-container" onclick="verDetalles('${t.$id}', 'land')">${thumbInner}${badge}</div>`;
+                const imgHtml = `<div class="thumb-container" onclick="verDetalles('${t.$id}', 'land')" data-title="Ver detalles / fotos">${thumbInner}${badge}</div>`;
 
+
+                // --- Lógica do Estado (Badge) ---
                 let estadoHtml = '';
                 if (t.estado === 'Disponible') estadoHtml = `<span class="status-badge status-disponible"><i class="fas fa-check"></i> Disponible</span>`;
                 else if (t.estado === 'Reservado') estadoHtml = `<span class="status-badge status-reservado"><i class="fas fa-bookmark"></i> Reservado</span>`;
                 else estadoHtml = `<span class="status-badge status-vendido"><i class="fas fa-lock"></i> Vendido</span>`;
 
+
+                // --- Lógica das Ações (Botões com Tooltip) ---
                 let acciones = '';
                 if (t.estado === 'Disponible') {
                     acciones = `
-                        <button type="button" class="btn btn-w btn-sm" onclick="event.stopPropagation(); openReserva('${t.$id}')"><i class="fas fa-bookmark"></i></button>
-                        <button type="button" class="btn btn-p btn-sm" onclick="event.stopPropagation(); openVenda('${t.$id}')"><i class="fas fa-handshake"></i></button>
+                        <button type="button" class="btn btn-w btn-sm" onclick="event.stopPropagation(); openReserva('${t.$id}')" data-title="Reservar terreno"><i class="fas fa-bookmark"></i></button>
+                        <button type="button" class="btn btn-p btn-sm" onclick="event.stopPropagation(); openVenda('${t.$id}')" data-title="Realizar Venta"><i class="fas fa-handshake"></i></button>
                     `;
                 } else if (t.estado === 'Reservado') {
                     acciones = `
-                        <button type="button" class="btn btn-p btn-sm" onclick="event.stopPropagation(); openVenda('${t.$id}')"><i class="fas fa-handshake"></i></button>
-                        <button type="button" class="btn btn-g btn-sm" onclick="event.stopPropagation(); cancelarReserva('${t.$id}')"><i class="fas fa-unlock"></i></button>
+                        <button type="button" class="btn btn-p btn-sm" onclick="event.stopPropagation(); openVenda('${t.$id}')" data-title="Concretar Venta"><i class="fas fa-handshake"></i></button>
+                        <button type="button" class="btn btn-g btn-sm" onclick="event.stopPropagation(); cancelarReserva('${t.$id}')" data-title="Cancelar Reserva / Liberar"><i class="fas fa-unlock"></i></button>
                     `;
                 } else {
                     acciones = `<span class="status-badge status-vendido"><i class="fas fa-lock"></i> Vendido</span>`;
@@ -2678,10 +2681,10 @@
                     <td>${NF0.format(t.area)} m²</td>
                     <td>${t.moneda} ${NF2.format(t.precio)}</td>
                     <td>${estadoHtml}</td>
-                    <td style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); openEdit('${t.$id}', 'land')"><i class="fas fa-edit"></i></button>
+                    <td style="display:flex; gap:8px; flex-wrap:wrap; overflow:visible;">
+                        <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); openEdit('${t.$id}', 'land')" data-title="Editar terreno"><i class="fas fa-edit"></i></button>
                         ${acciones}
-                        <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${t.$id}', 'land')"><i class="fas fa-trash"></i></button>
+                        <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${t.$id}', 'land')" data-title="Eliminar terreno"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;
             });
