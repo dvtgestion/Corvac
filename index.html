@@ -2623,7 +2623,7 @@
             loadData();
         });
 
-                        function renderTerrenos() {
+                                function renderTerrenos() {
             const b = document.getElementById('lista-terrenos');
             b.innerHTML = '';
             const f = document.getElementById('search-land').value.toLowerCase();
@@ -2631,7 +2631,7 @@
             terrenos.forEach(t => {
                 if (!t.nome.toLowerCase().includes(f) && !t.codigo.toLowerCase().includes(f)) return;
 
-                // --- Lógica da Imagem ---
+                // --- Lógica da Imagem (Thumbnail) ---
                 const files = normalizeFotos(t.fotos);
                 const fileCount = files.length;
                 const images = files.filter(x => !isPdfFile(x) && isImageByNameOrMime(x));
@@ -2648,17 +2648,17 @@
                     }
                 }
                 const badge = (fileCount > 1) ? `<span class="file-count">+${fileCount}</span>` : '';
-                
-                // Etiqueta na imagem
                 const imgHtml = `<div class="thumb-container" onclick="verDetalles('${t.$id}', 'land')" data-title="Ver detalles / fotos">${thumbInner}${badge}</div>`;
 
-                // --- Lógica do Estado ---
+
+                // --- Lógica do Estado (Badge) ---
                 let estadoHtml = '';
                 if (t.estado === 'Disponible') estadoHtml = `<span class="status-badge status-disponible"><i class="fas fa-check"></i> Disponible</span>`;
                 else if (t.estado === 'Reservado') estadoHtml = `<span class="status-badge status-reservado"><i class="fas fa-bookmark"></i> Reservado</span>`;
                 else estadoHtml = `<span class="status-badge status-vendido"><i class="fas fa-lock"></i> Vendido</span>`;
 
-                // --- Lógica das Ações ---
+
+                // --- Lógica das Ações (Botões com Tooltip) ---
                 let acciones = '';
                 if (t.estado === 'Disponible') {
                     acciones = `
@@ -2674,9 +2674,8 @@
                     acciones = `<span class="status-badge status-vendido"><i class="fas fa-lock"></i> Vendido</span>`;
                 }
 
-                // --- AQUI ESTÁ A CORREÇÃO: style="overflow:visible;" na primeira TD ---
                 b.innerHTML += `<tr>
-                    <td style="overflow:visible;">${imgHtml}</td>
+                    <td>${imgHtml}</td>
                     <td><strong>${t.codigo}</strong></td>
                     <td>${t.nome}</td>
                     <td>${NF0.format(t.area)} m²</td>
