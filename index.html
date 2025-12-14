@@ -1316,14 +1316,8 @@
                             </div>
                         </div>
                         
-                                                <div id="tab-vendas-completos" class="hidden">
-                            <div class="flex justify-between items-center" style="margin-bottom:12px; flex-wrap:wrap; gap:10px;">
-                                <h4 style="color:var(--success); font-weight:950; margin:0;">Pagos Finalizados</h4>
-                                <input type="text" id="search-completos" placeholder="Buscar en completados..." 
-                                       style="padding:8px 12px; border:1px solid rgba(15,23,42,0.14); border-radius:10px; width:100%; max-width:260px;"
-                                       onkeyup="renderVendas()">
-                            </div>
-
+                        <div id="tab-vendas-completos" class="hidden">
+                            <h4 style="margin-bottom:10px; color:var(--success); font-weight:950;">Pagos Finalizados</h4>
                             <div class="table-wrap">
                                 <table>
                                     <thead>
@@ -1340,15 +1334,7 @@
                             </div>
                         </div>
 
-
-                                               <div id="tab-vendas-hist" class="hidden">
-                            <div class="flex justify-between items-center" style="margin-bottom:12px; flex-wrap:wrap; gap:10px;">
-                                <h4 style="color:#0f172a; font-weight:950; margin:0;">Historial de Ventas</h4>
-                                <input type="text" id="search-historial" placeholder="Buscar en historial..." 
-                                       style="padding:8px 12px; border:1px solid rgba(15,23,42,0.14); border-radius:10px; width:100%; max-width:260px;"
-                                       onkeyup="renderVendas()">
-                            </div>
-
+                        <div id="tab-vendas-hist" class="hidden">
                             <div class="table-wrap">
                                 <table>
                                     <thead>
@@ -1364,7 +1350,6 @@
                                 </table>
                             </div>
                         </div>
-
                     </div>
                 </div>
 
@@ -3172,105 +3157,48 @@
             }
         }
 
-                                function renderVendas() {
-            // 1. Limpiar las listas visuales
+                        function renderVendas() {
+            // 1. Limpa as listas
             const l1 = document.getElementById('lista-cobrancas');
             const l2 = document.getElementById('lista-historico');
             const l3 = document.getElementById('lista-completos');
-            if (l1) l1.innerHTML = ''; 
-            if (l2) l2.innerHTML = ''; 
-            if (l3) l3.innerHTML = '';
+            l1.innerHTML = ''; l2.innerHTML = ''; l3.innerHTML = '';
 
-            // 2. Obtener los términos de búsqueda de cada pestaña
-            // A. Historial
-            const inputHist = document.getElementById('search-historial');
-            const fHist = inputHist ? inputHist.value.toLowerCase() : '';
-            
-            // B. Completados
-            const inputComp = document.getElementById('search-completos');
-            const fComp = inputComp ? inputComp.value.toLowerCase() : '';
+            // 2. Pega o termo de busca
+            const f = document.getElementById('search-venda').value.toLowerCase();
 
-            // (Nota: El filtro de Cobranzas se maneja dentro de buildCobranzasListFiltered)
-
-            // 3. Recorrer ventas para llenar Historial y Completados
+            // 3. Loop principal
             vendas.forEach(v => {
-                const cliente = (v.cliente || '').toLowerCase();
-                const terreno = (v.landNome || '').toLowerCase();
-                const textoCompleto = cliente + ' ' + terreno; // Permite buscar por cliente O terreno
+                if (!v.cliente.toLowerCase().includes(f)) return;
 
-                // --- LLENAR TABLA HISTORIAL (Usa fHist) ---
-                if (textoCompleto.includes(fHist)) {
-                    const hasDebt = (v.cuotas || []).some(c => !c.pago);
+                const hasDebt = (v.cuotas || []).some(c => !c.pago);
 
-                    if (l2) {
-                        l2.innerHTML += `<tr>
-                            <td>${v.$id.substring(0,5)}</td>
-                            <td>${v.cliente}</td>
-                            <td>${v.landNome}</td>
-                            <td>${fmtMoney(v.moneda, v.total)}</td>
-                            <td style="display:flex; gap:8px; flex-wrap:wrap; overflow:visible;">
-                                <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')" data-title="Editar datos"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" data-title="Ver detalles completos"><i class="fas fa-eye"></i></button>
-                                <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); window.openReportePagosCliente('${v.$id}')" data-title="Ver Historial / PDF"><i class="fas fa-file-invoice-dollar"></i></button>
-                                ${hasDebt ? `<button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openRenegociar('${v.$id}')" data-title="Renegociar deuda"><i class="fas fa-arrows-rotate"></i></button>` : ``}
-                                <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')" data-title="Eliminar venta"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>`;
-                    }
-                }
+                // --- TABELA DE HISTÓRICO / EDITAR (Com data-title) ---
+                l2.innerHTML += `<tr>
+                    <td>${v.$id.substring(0,5)}</td>
+                    <td>${v.cliente}</td>
+                    <td>${v.landNome}</td>
+                    <td>${fmtMoney(v.moneda, v.total)}</td>
+                    <td style="display:flex; gap:8px; flex-wrap:wrap; overflow:visible;">
+                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')" data-title="Editar datos">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        
+                        <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" data-title="Ver detalles completos">
+                            <i class="fas fa-eye"></i>
+                        </button>
 
-                // --- LLENAR TABLA COMPLETADOS (Usa fComp) ---
-                // Solo si está completo (sin deuda pendiente)
-                let pendente = getPendingCuotasSorted(v)[0];
-                if (!pendente && textoCompleto.includes(fComp)) {
-                    if (l3) {
-                        l3.innerHTML += `<tr>
-                            <td>${v.cliente}</td>
-                            <td>${v.landNome}</td>
-                            <td style="color:var(--success);font-weight:950">${fmtMoney(v.moneda, v.total)}</td>
-                            <td><span class="status-badge status-disponible"><i class="fas fa-check"></i> PAGADO</span></td>
-                            <td><button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" data-title="Ver detalles">Ver</button></td>
-                        </tr>`;
-                    }
-                }
-            });
+                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); window.openReportePagosCliente('${v.$id}')" data-title="Ver Historial / PDF">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </button>
 
-            // 4. Lógica de Cobranzas (Esta función ya lee internamente el input 'search-venda')
-            const cobranzasList = buildCobranzasListFiltered();
-            renderDebtTotalIfNeeded(cobranzasList);
-            renderVentasAlerts(cobranzasList);
-
-            // --- LLENAR TABLA COBRANZAS ---
-            if (l1) {
-                cobranzasList.forEach(item => {
-                    const v = item.v;
-                    const pendente = item.pendente;
-                    const cor = item.overdue ? 'red' : '#0f172a';
-                    const rowClass = item.overdue ? 'row-overdue' : (item.near ? 'row-near' : '');
-                    
-                    let labelExtra = '';
-                    if (item.overdue) {
-                        const txt = (item.days === 0) ? 'VENCE HOY' : 'VENCIDA';
-                        labelExtra = `<span class="status-badge" style="background:rgba(192,57,43,0.12); border:1px solid rgba(192,57,43,0.22); color:#7f1d1d;"><i class="fas fa-circle-exclamation"></i> ${txt}</span>`;
-                    } else if (item.near) {
-                        labelExtra = `<span class="status-badge" style="background:rgba(243,156,18,0.18); border:1px solid rgba(243,156,18,0.28); color:#92400e;"><i class="fas fa-bell"></i> PRONTO</span>`;
-                    }
-
-                    l1.innerHTML += `<tr class="${rowClass}">
-                        <td><strong>${v.cliente}</strong></td>
-                        <td>${v.landNome}</td>
-                        <td>${pendente.n}/${v.cuotas.length} ${labelExtra}</td>
-                        <td style="color:${cor};font-weight:950">${pendente.venc}</td>
-                        <td>${fmtMoney(v.moneda, pendente.valor)}</td>
-                        <td style="display:flex; gap:8px; flex-wrap:wrap; overflow:visible;">
-                            <button class="btn btn-s btn-sm" onclick="openPagar('${v.$id}', ${pendente.n})" data-title="Registrar pago">Cobrar</button>
-                            <button class="btn btn-w btn-sm" onclick="openRenegociar('${v.$id}')" data-title="Renegociar"><i class="fas fa-arrows-rotate"></i></button>
-                        </td>
-                    </tr>`;
-                });
-            }
-        }
-
+                        ${hasDebt ? `<button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openRenegociar('${v.$id}')" data-title="Renegociar deuda"><i class="fas fa-arrows-rotate"></i></button>` : ``}
+                        
+                        <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')" data-title="Eliminar venta">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
 
                 // --- TABELA DE COMPLETOS (Se não tiver pendência) ---
                 let pendente = getPendingCuotasSorted(v)[0];
