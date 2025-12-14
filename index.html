@@ -3705,10 +3705,13 @@
             loadData();
         };
 
-        window.verDetalles = (id, type) => {
+              window.verDetalles = (id, type) => {
             const d = (type === 'land') ? terrenos.find(x => x.$id === id) : vendas.find(x => x.$id === id);
+            
+            // Normalizar fotos (para evitar erros se estiver vazio)
             d.fotos = normalizeFotos(d.fotos);
 
+            // --- Preparar Galeria de Imagens ---
             let mediaHtml = '';
             d.fotos.forEach(u => {
                 const url = getFileUrl(u);
@@ -3733,6 +3736,7 @@
             const c = document.getElementById('detalles-contenido');
 
             if (type === 'land') {
+                // --- DETALHES DO TERRENO ---
                 let reservaHtml = '';
                 if (d.estado === 'Reservado' && d.reserva) {
                     const vence = d.reserva.vence ? ` • Vence: ${d.reserva.vence}` : '';
@@ -3749,13 +3753,46 @@
                    <p style="color:#334155; margin-top:6px;">${d.notas || ''}</p>
                    <hr style="margin:12px 0; border:0; border-top:1px solid rgba(15,23,42,0.08);">${mediaHtml}`;
             } else {
-                /* FIX: Detalles de comprador (ventas) ahora muestra montos formateados con separadores */
+                // --- DETALHES DA VENDA (CORRIGIDO) ---
                 const moneda = safeCurrency(d.moneda);
                 const entrada = parseFloat(d.entrada) || 0;
-                const pagadoCuotas = sumPaidCuotas(d);
-                const pagadoTotal = entrada + pagadoCuotas;
-                const pendiente = sumPendingCuotas(d);
+                
+                // 1. CÁLCULO REAL DO TOTAL PAGADO (Varrer histórico)
+                let totalPagadoReal = entrada; // Começa com a entrada
 
+                if (d.cuotas && Array.isArray(d.cuotas)) {
+                    d.cuotas.forEach(c => {
+                        // Se tiver histórico de pagamentos (novo sistema)
+                        if (c.pagos && Array.isArray(c.pagos) && c.pagos.length > 0) {
+                            c.pagos.forEach(p => {
+                                // Soma tudo que é dinheiro entrando (ignora ajustes de dívida)
+                                if (['pago', 'amortizacion', 'pago_parcial', 'pago_legacy', 'entrada'].includes(p.tipo)) {
+                                    totalPagadoReal += (parseFloat(p.monto) || 0);
+                                }
+                            });
+                        } 
+                        // Fallback para sistema antigo (se não tiver histórico detalhado)
+                        else if (c.pago) {
+                            totalPagadoReal += (parseFloat(c.valor_pago || c.valor) || 0);
+                        }
+                    });
+                }
+
+                // 2. CÁLCULO DO TOTAL (Valor de Venda)
+                // Se tiver total_original (de renegociação), usa ele, senão usa o total atual
+                const valorVendaTotal = parseFloat(d.total_original || d.total) || 0;
+                
+                // 3. CÁLCULO DA PENDÊNCIA
+                // O pendente é o Total da Venda menos tudo que já foi pago
+                const pendenteReal = valorVendaTotal - totalPagadoReal;
+
+                // 4. REFERÊNCIA DA CUOTA (O que você pediu)
+                // (Total - Entrada) / Quantidade de Parcelas
+                const numCuotas = (d.cuotas && d.cuotas.length > 0) ? d.cuotas.length : 1;
+                const valorFinanciado = valorVendaTotal - entrada;
+                const cuotaRef = valorFinanciado / numCuotas;
+
+                // Cálculo de Referência em Bs (se for USD)
                 let totalRefBs = parseFloat(d.total) || 0;
                 if (moneda === 'USD') totalRefBs = totalRefBs * getTcRefBsPerUsd(d);
 
@@ -3770,11 +3807,22 @@
                 c.innerHTML = `<h2 style="font-weight:950; color:#0f172a; margin-bottom:8px;">${d.cliente}</h2>
                    <p style="font-weight:900; color:#334155;"><strong>CI:</strong> ${d.ci || ''}</p>
                    <p style="font-weight:900; color:#334155;"><strong>Terreno:</strong> ${d.landNome || ''}</p>
-                   <p style="font-weight:900; color:#334155;"><strong>Total Venta:</strong> ${fmtMoney(moneda, d.total)}</p>
+                   
+                   <div style="background:rgba(15,23,42,0.04); padding:10px; border-radius:10px; margin:10px 0; border:1px solid rgba(15,23,42,0.1);">
+                       <p style="font-weight:900; color:#0f172a;"><strong>Valor Cuota (Ref. Inicial):</strong> ${fmtMoney(moneda, cuotaRef)}</p>
+                       <small style="color:#64748b;">(Baseado en ${numCuotas} cuotas)</small>
+                   </div>
+
+                   <p style="font-weight:900; color:#334155;"><strong>Total Venta:</strong> ${fmtMoney(moneda, valorVendaTotal)}</p>
                    <p style="font-weight:900; color:#334155;"><strong>Entrada:</strong> ${fmtMoney(moneda, entrada)}</p>
-                   <p style="font-weight:900; color:#334155;"><strong>Pagado:</strong> ${fmtMoney(moneda, pagadoTotal)}</p>
-                   <p style="font-weight:900; color:#334155;"><strong>Pendiente:</strong> ${fmtMoney(moneda, pendiente)}</p>
-                   <p style="font-weight:900; color:#334155;"><strong>Total (Ref. Bs):</strong> ${fmtBs(totalRefBs)}</p>
+                   
+                   <p style="font-weight:900; color:var(--success); font-size:1.1rem;">
+                        <strong>Total Pagado:</strong> ${fmtMoney(moneda, totalPagadoReal)}
+                   </p>
+                   
+                   <p style="font-weight:900; color:var(--danger);"><strong>Pendiente:</strong> ${fmtMoney(moneda, pendenteReal)}</p>
+                   
+                   <p style="font-weight:900; color:#334155; margin-top:8px;"><strong>Total (Ref. Global Bs):</strong> ${fmtBs(totalRefBs)}</p>
                    ${tcInfo}
                    ${notasHtml}
                    <hr style="margin:12px 0; border:0; border-top:1px solid rgba(15,23,42,0.08);">${mediaHtml}`;
@@ -3782,6 +3830,7 @@
 
             document.getElementById('modal-detalles').classList.remove('hidden');
         };
+
 
                     // ===== Reporte de Pagos (CORREGIDO - COM ENTRADA) =====
 
