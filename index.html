@@ -3110,7 +3110,7 @@
             }
         }
 
-        function renderVendas() {
+                function renderVendas() {
             const l1 = document.getElementById('lista-cobrancas');
             const l2 = document.getElementById('lista-historico');
             const l3 = document.getElementById('lista-completos');
@@ -3123,14 +3123,14 @@
 
                 const hasDebt = (v.cuotas || []).some(c => !c.pago);
 
-                                // --- INICIO DO BLOCO PARA COPIAR ---
+                // --- TABELA DE HISTÓRICO / EDITAR (Com Tooltips adicionados) ---
                 l2.innerHTML += `<tr>
                     <td>${v.$id.substring(0,5)}</td>
                     <td>${v.cliente}</td>
                     <td>${v.landNome}</td>
                     <td>${fmtMoney(v.moneda, v.total)}</td>
                     <td style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')" title="Editar datos de la venta">
+                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')" title="Editar datos">
                             <i class="fas fa-edit"></i>
                         </button>
                         
@@ -3138,20 +3138,19 @@
                             <i class="fas fa-eye"></i>
                         </button>
 
-                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); window.openReportePagosCliente('${v.$id}')" title="Ver Historial de Pagos / Descargar PDF">
+                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); window.openReportePagosCliente('${v.$id}')" title="Ver Historial / PDF">
                             <i class="fas fa-file-invoice-dollar"></i>
                         </button>
 
-                        ${hasDebt ? `<button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openRenegociar('${v.$id}')" title="Renegociar deuda / Refinanciar"><i class="fas fa-arrows-rotate"></i></button>` : ``}
+                        ${hasDebt ? `<button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openRenegociar('${v.$id}')" title="Renegociar deuda"><i class="fas fa-arrows-rotate"></i></button>` : ``}
                         
-                        <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')" title="Eliminar venta del sistema">
+                        <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')" title="Eliminar venta">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
                 </tr>`;
-                // --- FIM DO BLOCO ---
 
-
+                // --- TABELA DE COMPLETOS ---
                 let pendente = getPendingCuotasSorted(v)[0];
                 if (!pendente) {
                     l3.innerHTML += `<tr>
@@ -3159,11 +3158,12 @@
                         <td>${v.landNome}</td>
                         <td style="color:var(--success);font-weight:950">${fmtMoney(v.moneda, v.total)}</td>
                         <td><span class="status-badge status-disponible"><i class="fas fa-check"></i> PAGADO</span></td>
-                        <td><button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')">Ver</button></td>
+                        <td><button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" title="Ver detalles">Ver</button></td>
                     </tr>`;
                 }
             });
 
+            // --- TABELA DE COBRANÇAS ---
             const cobranzasList = buildCobranzasListFiltered();
             renderDebtTotalIfNeeded(cobranzasList);
             renderVentasAlerts(cobranzasList);
@@ -3190,12 +3190,13 @@
                     <td style="color:${cor};font-weight:950">${pendente.venc}</td>
                     <td>${fmtMoney(v.moneda, pendente.valor)}</td>
                     <td style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button class="btn btn-s btn-sm" onclick="openPagar('${v.$id}', ${pendente.n})">Cobrar</button>
-                        <button class="btn btn-w btn-sm" onclick="openRenegociar('${v.$id}')" title="Renegociar deuda"><i class="fas fa-arrows-rotate"></i></button>
+                        <button class="btn btn-s btn-sm" onclick="openPagar('${v.$id}', ${pendente.n})" title="Registrar pago">Cobrar</button>
+                        <button class="btn btn-w btn-sm" onclick="openRenegociar('${v.$id}')" title="Renegociar"><i class="fas fa-arrows-rotate"></i></button>
                     </td>
                 </tr>`;
             });
         }
+
 
         window.openPagar = (vId, n) => {
             const v = vendas.find(x => x.$id === vId);
