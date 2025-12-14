@@ -3123,19 +3123,34 @@
 
                 const hasDebt = (v.cuotas || []).some(c => !c.pago);
 
+                                // --- INICIO DO BLOCO PARA COPIAR ---
                 l2.innerHTML += `<tr>
                     <td>${v.$id.substring(0,5)}</td>
                     <td>${v.cliente}</td>
                     <td>${v.landNome}</td>
                     <td>${fmtMoney(v.moneda, v.total)}</td>
                     <td style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" title="Ver detalles"><i class="fas fa-eye"></i></button>
-                    <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); window.openReportePagosCliente('${v.$id}')" title="Reporte de pagos"><i class="fas fa-file-invoice-dollar"></i></button>
-                        ${hasDebt ? `<button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openRenegociar('${v.$id}')" title="Renegociar deuda"><i class="fas fa-arrows-rotate"></i></button>` : ``}
-                        <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')"><i class="fas fa-trash"></i></button>
+                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')" title="Editar datos de la venta">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        
+                        <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" title="Ver detalles completos">
+                            <i class="fas fa-eye"></i>
+                        </button>
+
+                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); window.openReportePagosCliente('${v.$id}')" title="Ver Historial de Pagos / Descargar PDF">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </button>
+
+                        ${hasDebt ? `<button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openRenegociar('${v.$id}')" title="Renegociar deuda / Refinanciar"><i class="fas fa-arrows-rotate"></i></button>` : ``}
+                        
+                        <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')" title="Eliminar venta del sistema">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </td>
                 </tr>`;
+                // --- FIM DO BLOCO ---
+
 
                 let pendente = getPendingCuotasSorted(v)[0];
                 if (!pendente) {
