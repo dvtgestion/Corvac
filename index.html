@@ -1316,14 +1316,8 @@
                             </div>
                         </div>
                         
-                                                <div id="tab-vendas-completos" class="hidden">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
-                                <h4 style="color:var(--success); font-weight:950; margin:0;">Pagos Finalizados</h4>
-                                <input type="text" id="search-completos" placeholder="Buscar cliente o terreno..." 
-                                       style="padding:8px 12px; border:1px solid rgba(15,23,42,0.14); border-radius:10px; width:100%; max-width:260px;"
-                                       onkeyup="renderVendas()">
-                            </div>
-
+                        <div id="tab-vendas-completos" class="hidden">
+                            <h4 style="margin-bottom:10px; color:var(--success); font-weight:950;">Pagos Finalizados</h4>
                             <div class="table-wrap">
                                 <table>
                                     <thead>
@@ -1339,8 +1333,26 @@
                                 </table>
                             </div>
                         </div>
+
+                        <div id="tab-vendas-hist" class="hidden">
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Cliente</th>
+                                            <th>Terreno</th>
+                                            <th>Total</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lista-historico"></tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
             </div>
         </main>
     </div>
@@ -3145,59 +3157,52 @@
             }
         }
 
-                             function renderVendas() {
-            // 1. Limpia las listas
+                        function renderVendas() {
+            // 1. Limpa as listas
             const l1 = document.getElementById('lista-cobrancas');
             const l2 = document.getElementById('lista-historico');
             const l3 = document.getElementById('lista-completos');
             l1.innerHTML = ''; l2.innerHTML = ''; l3.innerHTML = '';
 
-            // 2. Obtiene los términos de búsqueda (Uno para general/cobranzas, otro para completados)
-            const fGeneral = document.getElementById('search-venda').value.toLowerCase();
-            
-            // Verificamos si existe el input de completados (para evitar errores si no se renderizó)
-            const inputComp = document.getElementById('search-completos');
-            const fCompletos = inputComp ? inputComp.value.toLowerCase() : '';
+            // 2. Pega o termo de busca
+            const f = document.getElementById('search-venda').value.toLowerCase();
 
             // 3. Loop principal
             vendas.forEach(v => {
-                const cliente = (v.cliente || '').toLowerCase();
-                const terreno = (v.landNome || '').toLowerCase();
-                const textoCompleto = cliente + ' ' + terreno;
+                if (!v.cliente.toLowerCase().includes(f)) return;
 
-                // --- Lógica para COBRANZAS e HISTORIAL (Usa el buscador general) ---
-                if (textoCompleto.includes(fGeneral)) {
-                    const hasDebt = (v.cuotas || []).some(c => !c.pago);
+                const hasDebt = (v.cuotas || []).some(c => !c.pago);
 
-                    // Tabla Historial
-                    l2.innerHTML += `<tr>
-                        <td>${v.$id.substring(0,5)}</td>
-                        <td>${v.cliente}</td>
-                        <td>${v.landNome}</td>
-                        <td>${fmtMoney(v.moneda, v.total)}</td>
-                        <td style="display:flex; gap:8px; flex-wrap:wrap; overflow:visible;">
-                            <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')" data-title="Editar datos">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" data-title="Ver detalles completos">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); window.openReportePagosCliente('${v.$id}')" data-title="Ver Historial / PDF">
-                                <i class="fas fa-file-invoice-dollar"></i>
-                            </button>
-                            ${hasDebt ? `<button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openRenegociar('${v.$id}')" data-title="Renegociar deuda"><i class="fas fa-arrows-rotate"></i></button>` : ``}
-                            <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')" data-title="Eliminar venta">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>`;
-                }
+                // --- TABELA DE HISTÓRICO / EDITAR (Com data-title) ---
+                l2.innerHTML += `<tr>
+                    <td>${v.$id.substring(0,5)}</td>
+                    <td>${v.cliente}</td>
+                    <td>${v.landNome}</td>
+                    <td>${fmtMoney(v.moneda, v.total)}</td>
+                    <td style="display:flex; gap:8px; flex-wrap:wrap; overflow:visible;">
+                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')" data-title="Editar datos">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        
+                        <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" data-title="Ver detalles completos">
+                            <i class="fas fa-eye"></i>
+                        </button>
 
-                // --- Lógica para COMPLETADOS (Usa el NUEVO buscador específico) ---
+                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); window.openReportePagosCliente('${v.$id}')" data-title="Ver Historial / PDF">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </button>
+
+                        ${hasDebt ? `<button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openRenegociar('${v.$id}')" data-title="Renegociar deuda"><i class="fas fa-arrows-rotate"></i></button>` : ``}
+                        
+                        <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')" data-title="Eliminar venta">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
+
+                // --- TABELA DE COMPLETOS (Se não tiver pendência) ---
                 let pendente = getPendingCuotasSorted(v)[0];
-                
-                // Si no tiene deuda pendiente (está completo) Y coincide con el filtro de completados
-                if (!pendente && textoCompleto.includes(fCompletos)) {
+                if (!pendente) {
                     l3.innerHTML += `<tr>
                         <td>${v.cliente}</td>
                         <td>${v.landNome}</td>
@@ -3208,8 +3213,7 @@
                 }
             });
 
-            // 4. Lógica de Cobranças (Alertas e Totais) - Se mantiene igual, filtrando por fGeneral
-            // Nota: Para las cobranzas usamos el filtro buildCobranzasListFiltered que lee search-venda internamente.
+            // 4. Lógica de Cobranças (Alertas e Totais)
             const cobranzasList = buildCobranzasListFiltered();
             renderDebtTotalIfNeeded(cobranzasList);
             renderVentasAlerts(cobranzasList);
@@ -3243,6 +3247,7 @@
                 </tr>`;
             });
         }
+
 
 
         window.openPagar = (vId, n) => {
