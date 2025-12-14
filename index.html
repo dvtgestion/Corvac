@@ -995,6 +995,49 @@
             box-shadow: 0 10px 22px rgba(0,0,0,0.06);
             margin-bottom: 12px;
         }
+        /* --- CSS PARA TOOLTIPS INSTANTÂNEOS --- */
+        [data-title] {
+            position: relative; /* Necessário para posicionar a etiqueta */
+        }
+
+        /* A caixa preta com o texto */
+        [data-title]:hover::after {
+            content: attr(data-title);
+            position: absolute;
+            bottom: 115%; /* Fica acima do botão */
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b; /* Cor escura */
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap; /* Não quebra linha */
+            pointer-events: none;
+            z-index: 9999;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            opacity: 0;
+            animation: fadeInTooltip 0.2s forwards;
+        }
+
+        /* A setinha apontando para baixo */
+        [data-title]:hover::before {
+            content: '';
+            position: absolute;
+            bottom: 115%;
+            left: 50%;
+            transform: translateX(-50%) translateY(5px);
+            border: 6px solid transparent;
+            border-top-color: #1e293b;
+            z-index: 9999;
+            opacity: 0;
+            animation: fadeInTooltip 0.2s forwards;
+        }
+
+        @keyframes fadeInTooltip {
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
 
     </style>
 </head>
@@ -3110,47 +3153,50 @@
             }
         }
 
-                function renderVendas() {
+                        function renderVendas() {
+            // 1. Limpa as listas
             const l1 = document.getElementById('lista-cobrancas');
             const l2 = document.getElementById('lista-historico');
             const l3 = document.getElementById('lista-completos');
             l1.innerHTML = ''; l2.innerHTML = ''; l3.innerHTML = '';
 
+            // 2. Pega o termo de busca
             const f = document.getElementById('search-venda').value.toLowerCase();
 
+            // 3. Loop principal
             vendas.forEach(v => {
                 if (!v.cliente.toLowerCase().includes(f)) return;
 
                 const hasDebt = (v.cuotas || []).some(c => !c.pago);
 
-                // --- TABELA DE HISTÓRICO / EDITAR (Com Tooltips adicionados) ---
+                // --- TABELA DE HISTÓRICO / EDITAR (Com data-title) ---
                 l2.innerHTML += `<tr>
                     <td>${v.$id.substring(0,5)}</td>
                     <td>${v.cliente}</td>
                     <td>${v.landNome}</td>
                     <td>${fmtMoney(v.moneda, v.total)}</td>
-                    <td style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')" title="Editar datos">
+                    <td style="display:flex; gap:8px; flex-wrap:wrap; overflow:visible;">
+                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openEdit('${v.$id}', 'sale')" data-title="Editar datos">
                             <i class="fas fa-edit"></i>
                         </button>
                         
-                        <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" title="Ver detalles completos">
+                        <button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" data-title="Ver detalles completos">
                             <i class="fas fa-eye"></i>
                         </button>
 
-                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); window.openReportePagosCliente('${v.$id}')" title="Ver Historial / PDF">
+                        <button class="btn btn-w btn-sm" onclick="event.stopPropagation(); window.openReportePagosCliente('${v.$id}')" data-title="Ver Historial / PDF">
                             <i class="fas fa-file-invoice-dollar"></i>
                         </button>
 
-                        ${hasDebt ? `<button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openRenegociar('${v.$id}')" title="Renegociar deuda"><i class="fas fa-arrows-rotate"></i></button>` : ``}
+                        ${hasDebt ? `<button class="btn btn-w btn-sm" onclick="event.stopPropagation(); openRenegociar('${v.$id}')" data-title="Renegociar deuda"><i class="fas fa-arrows-rotate"></i></button>` : ``}
                         
-                        <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')" title="Eliminar venta">
+                        <button class="btn btn-d btn-sm" onclick="event.stopPropagation(); deleteItem('${v.$id}', 'sale')" data-title="Eliminar venta">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
                 </tr>`;
 
-                // --- TABELA DE COMPLETOS ---
+                // --- TABELA DE COMPLETOS (Se não tiver pendência) ---
                 let pendente = getPendingCuotasSorted(v)[0];
                 if (!pendente) {
                     l3.innerHTML += `<tr>
@@ -3158,16 +3204,17 @@
                         <td>${v.landNome}</td>
                         <td style="color:var(--success);font-weight:950">${fmtMoney(v.moneda, v.total)}</td>
                         <td><span class="status-badge status-disponible"><i class="fas fa-check"></i> PAGADO</span></td>
-                        <td><button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" title="Ver detalles">Ver</button></td>
+                        <td><button class="btn btn-g btn-sm" onclick="event.stopPropagation(); verDetalles('${v.$id}', 'sale')" data-title="Ver detalles">Ver</button></td>
                     </tr>`;
                 }
             });
 
-            // --- TABELA DE COBRANÇAS ---
+            // 4. Lógica de Cobranças (Alertas e Totais)
             const cobranzasList = buildCobranzasListFiltered();
             renderDebtTotalIfNeeded(cobranzasList);
             renderVentasAlerts(cobranzasList);
 
+            // --- TABELA DE COBRANÇAS ---
             cobranzasList.forEach(item => {
                 const v = item.v;
                 const pendente = item.pendente;
@@ -3189,13 +3236,14 @@
                     <td>${pendente.n}/${v.cuotas.length} ${labelExtra}</td>
                     <td style="color:${cor};font-weight:950">${pendente.venc}</td>
                     <td>${fmtMoney(v.moneda, pendente.valor)}</td>
-                    <td style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <button class="btn btn-s btn-sm" onclick="openPagar('${v.$id}', ${pendente.n})" title="Registrar pago">Cobrar</button>
-                        <button class="btn btn-w btn-sm" onclick="openRenegociar('${v.$id}')" title="Renegociar"><i class="fas fa-arrows-rotate"></i></button>
+                    <td style="display:flex; gap:8px; flex-wrap:wrap; overflow:visible;">
+                        <button class="btn btn-s btn-sm" onclick="openPagar('${v.$id}', ${pendente.n})" data-title="Registrar pago">Cobrar</button>
+                        <button class="btn btn-w btn-sm" onclick="openRenegociar('${v.$id}')" data-title="Renegociar"><i class="fas fa-arrows-rotate"></i></button>
                     </td>
                 </tr>`;
             });
         }
+
 
 
         window.openPagar = (vId, n) => {
