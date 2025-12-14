@@ -4188,7 +4188,7 @@
                 new Intl.NumberFormat('es-BO', { style: 'currency', currency: m }).format((p - e) / c);
         };
 
-                        function updateDashboard() {
+                                function updateDashboard() {
             // --- 1. Contagens Simples (KPIs) ---
             const total = (terrenos || []).length;
             const disp = (terrenos || []).filter(t => t.estado === 'Disponible').length;
@@ -4205,18 +4205,22 @@
             if (elVend) elVend.innerText = vend;
             if (elReserv) elReserv.innerText = reserv;
 
-            // --- 2. Filtros de Data ---
-            const elStart = document.getElementById('filter-date-start');
-            const elEnd = document.getElementById('filter-date-end');
-            
-            const s = elStart ? elStart.value : '';
-            const e = elEnd ? elEnd.value : '';
+            // --- 2. Filtros de Data (CORREÇÃO DE FUSO HORÁRIO) ---
+            const s = document.getElementById('filter-date-start').value; 
+            const e = document.getElementById('filter-date-end').value;
 
-            const start = s ? new Date(s) : new Date(0); 
-            const end = e ? new Date(e) : new Date(8640000000000000); 
-            end.setHours(23, 59, 59, 999); 
+            // Helper: Transforma data ISO em texto YYYY-MM-DD local (evita bug de -4h)
+            const getLocalYMD = (isoDate) => {
+                if (!isoDate) return '';
+                const d = new Date(isoDate);
+                if (isNaN(d.getTime())) return '';
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
 
-            // --- 3. Cálculo da Arrecadação (CORRIGIDO E BLINDADO) ---
+            // --- 3. Cálculo da Arrecadação (Soma Blindada + Correção de Data) ---
             let rec = 0;
             
             (vendas || []).forEach(v => {
@@ -4226,49 +4230,46 @@
 
                     // A. Somar Entrada
                     let dEntTxt = v.fecha_entrada || v.data;
-                    if (dEntTxt) {
-                        let dEnt = new Date(dEntTxt);
-                        if (!isNaN(dEnt.getTime()) && dEnt >= start && dEnt <= end) {
-                            let pg = parseFloat(v.entrada);
-                            if (isFinite(pg) && pg > 0) {
-                                if (isUsd) pg *= tcRef;
-                                rec += pg;
-                            }
+                    let entYMD = getLocalYMD(dEntTxt);
+                    
+                    // Compara Texto (YYYY-MM-DD)
+                    if ((!s || entYMD >= s) && (!e || entYMD <= e)) {
+                        let pg = parseFloat(v.entrada);
+                        if (isFinite(pg) && pg > 0) {
+                            if (isUsd) pg *= tcRef;
+                            rec += pg;
                         }
                     }
 
-                    // B. Somar Parcelas (Olhando HISTÓRICO DETALHADO)
+                    // B. Somar Parcelas (Histórico Detalhado)
                     (v.cuotas || []).forEach(c => {
-                        // Verifica pagamentos detalhados (Onde estão os 15 mil divididos)
                         if (c.pagos && Array.isArray(c.pagos) && c.pagos.length > 0) {
                             c.pagos.forEach(p => {
-                                // Lista completa de tipos de dinheiro
                                 if (['pago', 'amortizacion', 'pago_parcial', 'pago_legacy', 'pago_parcial_move', 'saldo_favor'].includes(p.tipo)) {
-                                    if (p.fecha) {
-                                        let dPay = new Date(p.fecha);
-                                        // Verifica data
-                                        if (!isNaN(dPay.getTime()) && dPay >= start && dPay <= end) {
-                                            let val = parseFloat(p.monto);
-                                            if (isFinite(val) && val > 0) {
-                                                // Conversão de moeda se necessário
-                                                if (isUsd) {
-                                                    let rate = parseFloat(p.tc);
-                                                    if (!isFinite(rate) || rate <= 0) rate = tcRef;
-                                                    val *= rate;
-                                                }
-                                                rec += val;
+                                    let payYMD = getLocalYMD(p.fecha);
+                                    // Compara Texto
+                                    if ((!s || payYMD >= s) && (!e || payYMD <= e)) {
+                                        let val = parseFloat(p.monto);
+                                        if (isFinite(val) && val > 0) {
+                                            if (isUsd) {
+                                                let rate = parseFloat(p.tc);
+                                                if (!isFinite(rate) || rate <= 0) rate = tcRef;
+                                                val *= rate;
                                             }
+                                            rec += val;
                                         }
                                     }
                                 }
                             });
                         }
-                        // Fallback antigo
+                        // Fallback (Sistema Antigo)
                         else if (c.pago && c.data_pago) {
-                            let dC = new Date(c.data_pago);
-                            if (!isNaN(dC.getTime()) && dC >= start && dC <= end) {
-                                let val = parseFloat(c.valor_pago); 
-                                if (!isFinite(val)) val = parseFloat(c.valor); // fallback
+                            let oldYMD = c.data_pago;
+                            if (oldYMD.includes('T')) oldYMD = getLocalYMD(oldYMD);
+
+                            if ((!s || oldYMD >= s) && (!e || oldYMD <= e)) {
+                                let val = parseFloat(c.valor_pago);
+                                if (!isFinite(val)) val = parseFloat(c.valor);
 
                                 if (isFinite(val) && val > 0) {
                                     if (isUsd) {
@@ -4282,28 +4283,24 @@
                         }
                     });
                     
-                    // C. Somar Saldo a Favor Global
+                    // C. Saldo a Favor Global
                     if (v.saldo_favor_hist && Array.isArray(v.saldo_favor_hist)) {
                         v.saldo_favor_hist.forEach(sf => {
-                            if (sf.fecha) {
-                                let dS = new Date(sf.fecha);
-                                if (!isNaN(dS.getTime()) && dS >= start && dS <= end) {
-                                    let val = parseFloat(sf.monto);
-                                    if (isFinite(val) && val > 0) {
-                                        if (isUsd) {
-                                            let rate = parseFloat(sf.tc);
-                                            if (!isFinite(rate) || rate <= 0) rate = tcRef;
-                                            val *= rate;
-                                        }
-                                        rec += val;
+                            let sfYMD = getLocalYMD(sf.fecha);
+                            if ((!s || sfYMD >= s) && (!e || sfYMD <= e)) {
+                                let val = parseFloat(sf.monto);
+                                if (isFinite(val) && val > 0) {
+                                    if (isUsd) {
+                                        let rate = parseFloat(sf.tc);
+                                        if (!isFinite(rate) || rate <= 0) rate = tcRef;
+                                        val *= rate;
                                     }
+                                    rec += val;
                                 }
                             }
                         });
                     }
-                } catch (err) {
-                    console.error("Erro ao somar venda:", v, err);
-                }
+                } catch (err) { console.error(err); }
             });
 
             const elMoney = document.getElementById('kpi-money');
@@ -4327,7 +4324,6 @@
                 });
             }
         }
-
 
 
         /* =========================================================
@@ -4369,31 +4365,46 @@
         }
 
                         function recaudacionRefBsEnPeriodo(startYmd, endYmd) {
-            const start = startYmd ? new Date(startYmd) : new Date(0);
-            const end = endYmd ? new Date(endYmd) : new Date(8640000000000000);
-            end.setHours(23,59,59,999);
+            // Pegamos as datas do filtro como texto simples (Ex: "2025-06-10")
+            const s = startYmd;
+            const e = endYmd;
+
+            // Função Helper: Transforma data ISO em texto YYYY-MM-DD local
+            // (Isso é crucial para corrigir o erro de fuso horário)
+            const getLocalYMD = (isoDate) => {
+                if (!isoDate) return '';
+                const d = new Date(isoDate);
+                if (isNaN(d.getTime())) return '';
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
 
             let rec = 0;
+            
             vendas.forEach(v => {
                 const isUsd = (safeCurrency(v.moneda) === 'USD');
                 const tcRef = getTcRefBsPerUsd(v);
 
                 // 1. Entrada
-                let dEnt = v.fecha_entrada ? new Date(v.fecha_entrada) : new Date(v.data);
-                if (dEnt >= start && dEnt <= end) {
+                let dEntTxt = v.fecha_entrada || v.data;
+                let entYMD = getLocalYMD(dEntTxt);
+                // Compara Texto ao invés de Objeto de Data
+                if ((!s || entYMD >= s) && (!e || entYMD <= e)) {
                     let pg = parseFloat(v.entrada)||0;
                     if (isUsd) pg *= tcRef;
                     rec += pg;
                 }
 
-                // 2. Cuotas Detalhadas
+                // 2. Cuotas (Lógica Detalhada)
                 (v.cuotas || []).forEach(c => {
+                    // A. Histórico Novo (Soma pagamentos parciais, amortizações, etc)
                     if (c.pagos && Array.isArray(c.pagos) && c.pagos.length > 0) {
                         c.pagos.forEach(p => {
-                            // SOMA TUDO, INCLUSIVE AS SOBRAS (AMORTIZAÇÃO)
                             if (['pago', 'amortizacion', 'pago_parcial', 'pago_legacy', 'pago_parcial_move', 'saldo_favor'].includes(p.tipo)) {
-                                let dPay = new Date(p.fecha);
-                                if (dPay >= start && dPay <= end) {
+                                let payYMD = getLocalYMD(p.fecha);
+                                if ((!s || payYMD >= s) && (!e || payYMD <= e)) {
                                     let val = parseFloat(p.monto) || 0;
                                     if (isUsd) {
                                         let rate = parseFloat(p.tc) || tcRef;
@@ -4404,10 +4415,13 @@
                             }
                         });
                     }
+                    // B. Sistema Antigo (Fallback)
                     else if (c.pago && c.data_pago) {
-                        let dC = new Date(c.data_pago);
-                        if (dC >= start && dC <= end) {
-                            let val = (c.valor_pago !== undefined && c.valor_pago !== null) ? (parseFloat(c.valor_pago)||0) : (parseFloat(c.valor)||0);
+                        let oldYMD = c.data_pago;
+                        if (oldYMD.includes('T')) oldYMD = getLocalYMD(oldYMD);
+                        
+                        if ((!s || oldYMD >= s) && (!e || oldYMD <= e)) {
+                            let val = parseFloat(c.valor_pago) || parseFloat(c.valor) || 0;
                             if (isUsd) {
                                 let rate = parseFloat(c.tc) || tcRef;
                                 val *= rate;
@@ -4417,11 +4431,11 @@
                     }
                 });
 
-                // 3. Saldo Favor
+                // 3. Saldo Favor Global
                 if (v.saldo_favor_hist && Array.isArray(v.saldo_favor_hist)) {
                     v.saldo_favor_hist.forEach(sf => {
-                        let dS = new Date(sf.fecha);
-                        if (dS >= start && dS <= end) {
+                        let sfYMD = getLocalYMD(sf.fecha);
+                        if ((!s || sfYMD >= s) && (!e || sfYMD <= e)) {
                             let val = parseFloat(sf.monto) || 0;
                             if (isUsd) {
                                 let rate = parseFloat(sf.tc) || tcRef;
@@ -4434,6 +4448,7 @@
             });
             return rec;
         }
+
 
         function ventaStats(v) {
             const moneda = safeCurrency(v.moneda);
