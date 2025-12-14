@@ -3269,35 +3269,31 @@
             document.getElementById('modal-pagar').classList.remove('hidden');
         };
 
-        // ===== Registrar Pago (CORREGIDO) =====
+               // ===== Registrar Pago (LÓGICA HÍBRIDA: CASCATA E ACUMULAÇÃO) =====
         document.getElementById('form-pagar').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // 1. Obter IDs corretos dos inputs ocultos
             const vId = document.getElementById('p-venda-id').value;
             const idx = parseInt(document.getElementById('p-cuota-idx').value);
-
-            if (!vId) return;
-
-            // 2. Encontrar a venda
-            const v = vendas.find(x => x.$id === vId);
-            if (!v) { alert('Venta no encontrada'); return; }
-
-            // 3. Obter valores do formulário (IDs corretos)
             const inputValor = document.getElementById('p-valor-real');
             const inputData = document.getElementById('p-data');
             const inputTc = document.getElementById('p-tc');
-            
-            const valorPago = parseFloat(inputValor.value);
-            const dataPago = inputData.value; // YYYY-MM-DD
-            
-            // Verifica se TC está visível/preenchido
+
+            if (!vId) return;
+
+            const v = vendas.find(x => x.$id === vId);
+            if (!v) { alert('Venta no encontrada'); return; }
+
+            let valorDisponivel = parseFloat(inputValor.value); 
+            const dataPago = inputData.value;
+
+            // Verifica TC
             let tcVal = null;
             if (!document.getElementById('div-tc').classList.contains('hidden')) {
                 tcVal = parseFloat(inputTc.value);
             }
 
-            if (!valorPago || valorPago <= 0) {
+            if (!valorDisponivel || valorDisponivel <= 0) {
                 alert('Por favor, ingrese un monto válido.');
                 return;
             }
@@ -3305,44 +3301,128 @@
             document.getElementById('loader').classList.remove('hidden');
 
             try {
-                // 4. Atualizar a parcela (Cuota)
-                if (v.cuotas && v.cuotas[idx]) {
-                    const c = v.cuotas[idx];
-                    
-                    c.pago = true;
-                    c.valor_pago = valorPago; 
-                    c.data_pago = dataPago;   
-                    c.tc = tcVal;             
+                const cAtual = v.cuotas[idx];
+                const valorDaParcela = parseFloat(cAtual.valor);
 
-                    // Histórico de pagamentos
-                    if (!c.pagos) c.pagos = [];
-                    c.pagos.push({
-                        fecha: new Date().toISOString(),
-                        monto: valorPago,
-                        tc: tcVal,
-                        tipo: 'pago',
-                        nota: 'Pago registrado manualmente',
-                        antes: c.valor,
-                        despues: 0
-                    });
+                if (!cAtual.pagos) cAtual.pagos = [];
+
+                // ======================================================
+                // CENÁRIO 1: PAGOU A MENOS (Acumular dívida na próxima)
+                // Ex: Deve 10.000, Pagou 5.000 -> Próxima aumenta 5.000
+                // ======================================================
+                if (valorDisponivel < valorDaParcela - 0.01) { 
+                    
+                    // Verifica se existe uma próxima parcela para jogar a dívida
+                    if (idx + 1 < v.cuotas.length) {
+                        const diferenca = valorDaParcela - valorDisponivel; // 5.000
+
+                        // 1. Marca a atual como PAGA TOTALMENTE (pois a dívida vai sair dela)
+                        cAtual.pago = true;
+                        cAtual.valor_pago = valorDisponivel;
+                        cAtual.data_pago = dataPago;
+                        cAtual.tc = tcVal;
+                        
+                        cAtual.pagos.push({
+                            fecha: new Date().toISOString(),
+                            monto: valorDisponivel,
+                            tc: tcVal,
+                            tipo: 'pago_parcial_move',
+                            nota: `Pago parcial. Saldo (${fmtMoney(v.moneda, diferenca)}) movido a la sgte cuota.`
+                        });
+
+                        // 2. Adiciona a dívida na PRÓXIMA parcela
+                        const cProxima = v.cuotas[idx + 1];
+                        cProxima.valor = round2((parseFloat(cProxima.valor) || 0) + diferenca);
+                        
+                        // Adiciona um log na próxima parcela para saberem de onde veio esse valor
+                        if (!cProxima.pagos) cProxima.pagos = [];
+                        cProxima.pagos.push({
+                            fecha: new Date().toISOString(),
+                            monto: 0,
+                            tipo: 'ajuste_deuda',
+                            nota: `Recargo de deuda anterior (${fmtMoney(v.moneda, diferenca)})`
+                        });
+
+                    } else {
+                        // Se for a ÚLTIMA parcela, não tem pra onde jogar.
+                        // Então fazemos uma amortização simples (diminui o valor dela e deixa em aberto)
+                        cAtual.valor = round2(valorDaParcela - valorDisponivel);
+                        cAtual.pagos.push({
+                            fecha: new Date().toISOString(),
+                            monto: valorDisponivel,
+                            tc: tcVal,
+                            tipo: 'amortizacion',
+                            nota: 'Pago parcial (Última cuota)'
+                        });
+                        // Não marca como pago=true, pois ainda deve o resto
+                    }
+
+                } 
+                // ======================================================
+                // CENÁRIO 2: PAGOU O TOTAL OU A MAIS (Cascata)
+                // Ex: Deve 10.000, Pagou 15.000 -> Paga atual e abate 5.000 da próxima
+                // ======================================================
+                else {
+                    let i = idx;
+                    // Loop enquanto tiver dinheiro e parcelas
+                    while (valorDisponivel > 0.009 && i < v.cuotas.length) {
+                        const c = v.cuotas[i];
+
+                        if (c.pago) { i++; continue; } // Pula pagas
+
+                        const valorAtual = parseFloat(c.valor);
+                        if (!c.pagos) c.pagos = [];
+
+                        if (valorDisponivel >= valorAtual) {
+                            // Paga essa inteira
+                            c.pago = true;
+                            c.valor_pago = valorAtual;
+                            c.data_pago = dataPago;
+                            c.tc = tcVal;
+                            
+                            c.pagos.push({
+                                fecha: new Date().toISOString(),
+                                monto: valorAtual,
+                                tc: tcVal,
+                                tipo: 'pago',
+                                nota: 'Pago Completo'
+                            });
+
+                            valorDisponivel = round2(valorDisponivel - valorAtual);
+                            i++; // Vai para a próxima com o troco
+                        } else {
+                            // O dinheiro sobrou mas não paga a próxima inteira (Amortiza)
+                            const amortizado = valorDisponivel;
+                            c.valor = round2(valorAtual - amortizado);
+                            
+                            c.pagos.push({
+                                fecha: new Date().toISOString(),
+                                monto: amortizado,
+                                tc: tcVal,
+                                tipo: 'amortizacion',
+                                nota: `Saldo a favor aplicado: ${fmtMoney(v.moneda, amortizado)}`
+                            });
+                            
+                            valorDisponivel = 0; // Acabou o dinheiro
+                        }
+                    }
                 }
 
-                // 5. Salvar no banco de dados
+                // Salvar e Atualizar
                 await db.updateDocument(DB_ID, COL_VENDAS, vId, { dados: JSON.stringify(v) });
-
-                // 6. Limpeza e Reload
                 closeModal('modal-pagar');
                 document.getElementById('form-pagar').reset();
-                alert('Pago registrado con éxito!');
+                alert('Operación registrada con éxito.');
                 loadData(); 
 
             } catch (err) {
                 console.error(err);
-                alert('Error al guardar el pago: ' + err.message);
+                alert('Error al guardar: ' + err.message);
             } finally {
                 document.getElementById('loader').classList.add('hidden');
             }
         });
+
 
         // ------------------------------
         // RENEGOCIACIÓN (igual que tu lógica)
