@@ -4166,7 +4166,8 @@
                 new Intl.NumberFormat('es-BO', { style: 'currency', currency: m }).format((p - e) / c);
         };
 
-        function updateDashboard() {
+                function updateDashboard() {
+            // Contagens simples (KPIs)
             const total = terrenos.length;
             const disp = terrenos.filter(t => t.estado === 'Disponible').length;
             const reserv = terrenos.filter(t => t.estado === 'Reservado').length;
@@ -4177,6 +4178,7 @@
             document.getElementById('kpi-vendidos').innerText = vend;
             document.getElementById('kpi-reservados-mini').innerText = reserv;
 
+            // Filtros de Data
             const s = document.getElementById('filter-date-start').value,
                   e = document.getElementById('filter-date-end').value;
 
@@ -4184,28 +4186,75 @@
                   end = e ? new Date(e) : new Date(8640000000000000);
             end.setHours(23, 59, 59, 999);
 
+            // === CÁLCULO DA ARRECADAÇÃO (CORRIGIDO) ===
             let rec = 0;
+            
             vendas.forEach(v => {
+                const isUsd = (safeCurrency(v.moneda) === 'USD');
+                const tcRef = getTcRefBsPerUsd(v);
+
+                // 1. Somar Entrada (Se estiver dentro da data)
                 let dEnt = v.fecha_entrada ? new Date(v.fecha_entrada) : new Date(v.data);
                 if (dEnt >= start && dEnt <= end) {
-                    let pg = v.entrada;
-                    if (v.moneda === 'USD') pg *= getTcRefBsPerUsd(v);
+                    let pg = parseFloat(v.entrada) || 0;
+                    if (isUsd) pg *= tcRef;
                     rec += pg;
                 }
+
+                // 2. Somar Parcelas (Olhando o histórico detalhado)
                 (v.cuotas || []).forEach(c => {
-                    if (c.pago && c.data_pago) {
+                    // A. Se tiver histórico detalhado (Novo sistema)
+                    if (c.pagos && Array.isArray(c.pagos) && c.pagos.length > 0) {
+                        c.pagos.forEach(p => {
+                            // Verifica se é um tipo válido de dinheiro entrando
+                            if (['pago', 'amortizacion', 'pago_parcial', 'pago_legacy', 'pago_parcial_move', 'saldo_favor'].includes(p.tipo)) {
+                                let dPay = new Date(p.fecha);
+                                // Verifica se a data do pagamento bate com o filtro
+                                if (dPay >= start && dPay <= end) {
+                                    let val = parseFloat(p.monto) || 0;
+                                    // Converte moeda (usa TC do pagamento ou da venda)
+                                    if (isUsd) {
+                                        let rate = parseFloat(p.tc) || tcRef;
+                                        val *= rate;
+                                    }
+                                    rec += val;
+                                }
+                            }
+                        });
+                    }
+                    // B. Fallback (Sistema antigo, sem array 'pagos')
+                    else if (c.pago && c.data_pago) {
                         let dC = new Date(c.data_pago);
                         if (dC >= start && dC <= end) {
-                            let val = c.valor_pago || c.valor;
-                            if (v.moneda === 'USD') val *= (c.tc || getTcRefBsPerUsd(v));
+                            let val = parseFloat(c.valor_pago || c.valor) || 0;
+                            if (isUsd) {
+                                let rate = parseFloat(c.tc) || tcRef;
+                                val *= rate;
+                            }
                             rec += val;
                         }
                     }
                 });
+                
+                // 3. Somar Saldo a Favor Global (Se houver)
+                if (v.saldo_favor_hist && Array.isArray(v.saldo_favor_hist)) {
+                    v.saldo_favor_hist.forEach(sf => {
+                        let dS = new Date(sf.fecha);
+                        if (dS >= start && dS <= end) {
+                            let val = parseFloat(sf.monto) || 0;
+                            if (isUsd) {
+                                let rate = parseFloat(sf.tc) || tcRef;
+                                val *= rate;
+                            }
+                            rec += val;
+                        }
+                    });
+                }
             });
 
             document.getElementById('kpi-money').innerText = fmtBs(rec);
 
+            // Atualiza o Gráfico
             const ctx1 = document.getElementById('chart-fin').getContext('2d');
             if (window.ch1) window.ch1.destroy();
             window.ch1 = new Chart(ctx1, {
@@ -4220,6 +4269,7 @@
                 options: { maintainAspectRatio: false }
             });
         }
+
 
         /* =========================================================
            REPORTES (PDF/CSV) SIN POPUPS (descarga directa)
@@ -4259,32 +4309,72 @@
             return new Date().toISOString().split('T')[0];
         }
 
-        function recaudacionRefBsEnPeriodo(startYmd, endYmd) {
+                function recaudacionRefBsEnPeriodo(startYmd, endYmd) {
             const start = startYmd ? new Date(startYmd) : new Date(0);
             const end = endYmd ? new Date(endYmd) : new Date(8640000000000000);
             end.setHours(23,59,59,999);
 
             let rec = 0;
             vendas.forEach(v => {
+                const isUsd = (safeCurrency(v.moneda) === 'USD');
+                const tcRef = getTcRefBsPerUsd(v);
+
+                // 1. Entrada
                 let dEnt = v.fecha_entrada ? new Date(v.fecha_entrada) : new Date(v.data);
                 if (dEnt >= start && dEnt <= end) {
                     let pg = parseFloat(v.entrada)||0;
-                    if (safeCurrency(v.moneda) === 'USD') pg *= getTcRefBsPerUsd(v);
+                    if (isUsd) pg *= tcRef;
                     rec += pg;
                 }
+
+                // 2. Cuotas Detalhadas
                 (v.cuotas || []).forEach(c => {
-                    if (c.pago && c.data_pago) {
+                    if (c.pagos && Array.isArray(c.pagos) && c.pagos.length > 0) {
+                        c.pagos.forEach(p => {
+                            if (['pago', 'amortizacion', 'pago_parcial', 'pago_legacy', 'pago_parcial_move', 'saldo_favor'].includes(p.tipo)) {
+                                let dPay = new Date(p.fecha);
+                                if (dPay >= start && dPay <= end) {
+                                    let val = parseFloat(p.monto) || 0;
+                                    if (isUsd) {
+                                        let rate = parseFloat(p.tc) || tcRef;
+                                        val *= rate;
+                                    }
+                                    rec += val;
+                                }
+                            }
+                        });
+                    }
+                    else if (c.pago && c.data_pago) {
                         let dC = new Date(c.data_pago);
                         if (dC >= start && dC <= end) {
                             let val = (c.valor_pago !== undefined && c.valor_pago !== null) ? (parseFloat(c.valor_pago)||0) : (parseFloat(c.valor)||0);
-                            if (safeCurrency(v.moneda) === 'USD') val *= (parseFloat(c.tc)||getTcRefBsPerUsd(v));
+                            if (isUsd) {
+                                let rate = parseFloat(c.tc) || tcRef;
+                                val *= rate;
+                            }
                             rec += val;
                         }
                     }
                 });
+
+                // 3. Saldo Favor
+                if (v.saldo_favor_hist && Array.isArray(v.saldo_favor_hist)) {
+                    v.saldo_favor_hist.forEach(sf => {
+                        let dS = new Date(sf.fecha);
+                        if (dS >= start && dS <= end) {
+                            let val = parseFloat(sf.monto) || 0;
+                            if (isUsd) {
+                                let rate = parseFloat(sf.tc) || tcRef;
+                                val *= rate;
+                            }
+                            rec += val;
+                        }
+                    });
+                }
             });
             return rec;
         }
+
 
         function ventaStats(v) {
             const moneda = safeCurrency(v.moneda);
