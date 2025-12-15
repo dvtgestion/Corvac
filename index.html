@@ -1130,7 +1130,7 @@
                         <span style="font-size:0.82rem; color:#334155; margin-left:8px; font-weight:800;">(Filtra lo recaudado)</span>
                     </div>
 
-                    <div class="kpi-row">
+                                        <div class="kpi-row">
                         <div class="card kpi-card">
                             <h4 class="kpi-title">Total Terrenos</h4>
                             <h1 id="kpi-total" class="kpi-value">0</h1>
@@ -1147,6 +1147,12 @@
                             <h4 class="kpi-title">Vendidos</h4>
                             <h1 id="kpi-vendidos" class="kpi-value">0</h1>
                         </div>
+
+                        <div class="card kpi-card" style="border: 1px solid rgba(230, 126, 34, 0.3);">
+                            <h4 class="kpi-title" style="color:#d35400; font-weight:950;">Por Cobrar (Mes Actual)</h4>
+                            <h1 id="kpi-forecast" class="kpi-value">0</h1>
+                        </div>
+
                         <div class="card kpi-card" style="border: 1px solid rgba(41,128,185,0.18);">
                             <h4 class="kpi-title" style="color:var(--accent); font-weight:950;">Recaudado (Ref. Bs)</h4>
                             <h1 id="kpi-money" class="kpi-value">0</h1>
@@ -4208,7 +4214,7 @@
                 new Intl.NumberFormat('es-BO', { style: 'currency', currency: m }).format((p - e) / c);
         };
 
-                                function updateDashboard() {
+                                  function updateDashboard() {
             // --- 1. Contagens Simples (KPIs) ---
             const total = (terrenos || []).length;
             const disp = (terrenos || []).filter(t => t.estado === 'Disponible').length;
@@ -4225,11 +4231,17 @@
             if (elVend) elVend.innerText = vend;
             if (elReserv) elReserv.innerText = reserv;
 
+            // --- PREPARAÇÃO PARA PREVISÃO (A Receber Este Mês) ---
+            const now = new Date();
+            const curMonth = now.getMonth(); // 0 a 11
+            const curYear = now.getFullYear();
+            let forecast = 0; // Vai somar o que vence este mês e não foi pago
+
             // --- 2. Filtros de Data (CORREÇÃO DE FUSO HORÁRIO) ---
             const s = document.getElementById('filter-date-start').value; 
             const e = document.getElementById('filter-date-end').value;
 
-            // Helper: Transforma data ISO em texto YYYY-MM-DD local (evita bug de -4h)
+            // Helper: Transforma data ISO em texto YYYY-MM-DD local
             const getLocalYMD = (isoDate) => {
                 if (!isoDate) return '';
                 const d = new Date(isoDate);
@@ -4240,7 +4252,7 @@
                 return `${year}-${month}-${day}`;
             };
 
-            // --- 3. Cálculo da Arrecadação (Soma Blindada + Correção de Data) ---
+            // --- 3. Cálculo da Arrecadação + Previsão ---
             let rec = 0;
             
             (vendas || []).forEach(v => {
@@ -4248,11 +4260,33 @@
                     const isUsd = (safeCurrency(v.moneda) === 'USD');
                     const tcRef = getTcRefBsPerUsd(v); 
 
+                    // --- CÁLCULO DA PREVISÃO (Por Cobrar - Mes Actual) ---
+                    // Varre parcelas PENDENTES (!pago) que vencem no mês atual
+                    (v.cuotas || []).forEach(c => {
+                        if (!c.pago) {
+                            // Tenta ler a data de vencimento YYYY-MM-DD
+                            if (c.venc && c.venc.length >= 7) {
+                                const parts = c.venc.split('-'); // [YYYY, MM, DD]
+                                const vy = parseInt(parts[0]);
+                                const vm = parseInt(parts[1]) - 1; // Ajusta para 0-11
+
+                                // Se for do mesmo Mês e Ano atuais
+                                if (vy === curYear && vm === curMonth) {
+                                    let val = parseFloat(c.valor) || 0;
+                                    // Converte para Bs se for USD para somar no total geral
+                                    if (isUsd) val *= tcRef;
+                                    forecast += val;
+                                }
+                            }
+                        }
+                    });
+
+                    // --- CÁLCULO DO RECAUDADO (Lógica existente) ---
+                    
                     // A. Somar Entrada
                     let dEntTxt = v.fecha_entrada || v.data;
                     let entYMD = getLocalYMD(dEntTxt);
                     
-                    // Compara Texto (YYYY-MM-DD)
                     if ((!s || entYMD >= s) && (!e || entYMD <= e)) {
                         let pg = parseFloat(v.entrada);
                         if (isFinite(pg) && pg > 0) {
@@ -4267,7 +4301,6 @@
                             c.pagos.forEach(p => {
                                 if (['pago', 'amortizacion', 'pago_parcial', 'pago_legacy', 'pago_parcial_move', 'saldo_favor'].includes(p.tipo)) {
                                     let payYMD = getLocalYMD(p.fecha);
-                                    // Compara Texto
                                     if ((!s || payYMD >= s) && (!e || payYMD <= e)) {
                                         let val = parseFloat(p.monto);
                                         if (isFinite(val) && val > 0) {
@@ -4308,13 +4341,12 @@
                         v.saldo_favor_hist.forEach(sf => {
                             let sfYMD = getLocalYMD(sf.fecha);
                             if ((!s || sfYMD >= s) && (!e || sfYMD <= e)) {
-                                let val = parseFloat(sf.monto);
-                                if (isFinite(val) && val > 0) {
-                                    if (isUsd) {
-                                        let rate = parseFloat(sf.tc);
-                                        if (!isFinite(rate) || rate <= 0) rate = tcRef;
-                                        val *= rate;
-                                    }
+                                let val = parseFloat(sf.monto) || 0;
+                                if (isUsd) {
+                                    let rate = parseFloat(sf.tc) || tcRef;
+                                    val *= rate;
+                                    rec += val;
+                                } else {
                                     rec += val;
                                 }
                             }
@@ -4323,8 +4355,13 @@
                 } catch (err) { console.error(err); }
             });
 
+            // Atualiza o valor do Recaudado
             const elMoney = document.getElementById('kpi-money');
             if (elMoney) elMoney.innerText = fmtBs(rec);
+
+            // ATUALIZA O NOVO VALOR DA PREVISÃO
+            const elForecast = document.getElementById('kpi-forecast');
+            if (elForecast) elForecast.innerText = fmtBs(forecast);
 
             // --- 4. Atualizar Gráfico ---
             const cvs = document.getElementById('chart-fin');
@@ -4344,6 +4381,7 @@
                 });
             }
         }
+
 
 
         /* =========================================================
