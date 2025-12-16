@@ -3917,17 +3917,20 @@
           return map[tipo] || tipo || '';
         };
 
-        const _entriesPagoDeVenta = (v) => {
+                const _entriesPagoDeVenta = (v) => {
           const entries = [];
           const t = (window.terrenos || []).find(x => x.$id === v.landId);
           const terrenoNom = t ? t.nome : (v.landNome || '—');
+          // AQUI: Pegamos a moeda real da venda (ex: 'BOB' ou 'USD')
+          const currentMoneda = v.moneda || 'BOB';
 
-          // --- 1. ADICIONAR A ENTRADA (Correção) ---
+          // --- 1. ADICIONAR A ENTRADA ---
           if (v.entrada && parseFloat(v.entrada) > 0) {
               entries.push({
-                  fecha: v.fecha_entrada || v.data || '', // Data da entrada ou data da venda
+                  fecha: v.fecha_entrada || v.data || '', 
                   monto: parseFloat(v.entrada),
-                  tc: v.tc_venta || null, // Usa o TC registrado no momento da venda
+                  tc: v.tc_venta || null,
+                  moneda: currentMoneda, // <--- NOVA PROPRIEDADE
                   tipo: 'entrada',
                   nota: 'Pago Inicial (Entrada)',
                   cuota: 'Entrada',
@@ -3947,6 +3950,7 @@
                   fecha: p.fecha || p.ts || '',
                   monto: Number(p.monto || 0),
                   tc: (p.tc ?? ''),
+                  moneda: currentMoneda, // <--- NOVA PROPRIEDADE
                   tipo: p.tipo || '',
                   nota: p.nota || '',
                   cuota: n,
@@ -3959,6 +3963,7 @@
                 fecha: c.data_pago || v.data || '',
                 monto: Number(c.valor_pago || c.valor || 0),
                 tc: (c.tc ?? ''),
+                moneda: currentMoneda, // <--- NOVA PROPRIEDADE
                 tipo: 'pago_legacy',
                 nota: 'Pago registrado',
                 cuota: n,
@@ -3974,6 +3979,7 @@
                 fecha: s.fecha || '',
                 monto: Number(s.monto || 0),
                 tc: (s.tc ?? ''),
+                moneda: currentMoneda, // <--- NOVA PROPRIEDADE
                 tipo: 'saldo_favor',
                 nota: s.nota || '',
                 cuota: '—',
@@ -3984,7 +3990,7 @@
           return entries;
         };
 
-        window.openReportePagosCliente = (saleId) => {
+                window.openReportePagosCliente = (saleId) => {
           const v0 = vendas.find(x => x.$id === saleId);
           
           if (!v0) { 
@@ -4026,8 +4032,15 @@
           entries.forEach(e => {
              const val = Number(e.monto) || 0;
              const tc = parseFloat(e.tc);
-             if (tc && tc > 0) totalRefBs += val * tc;
-             else totalRefBs += val;
+             // Cálculo de referência em Bs para o totalizador
+             if (e.moneda === 'USD') {
+                 // Se é dólar, converte pra Bs usando o TC da linha ou 6.96
+                 const rate = (tc && tc > 0) ? tc : 6.96;
+                 totalRefBs += val * rate;
+             } else {
+                 // Se é Boliviano, soma direto
+                 totalRefBs += val;
+             }
           });
 
           let html = `
@@ -4058,10 +4071,11 @@
           `;
 
           entries.forEach(e => {
-            const tcVal = parseFloat(e.tc);
-            const isUsd = (tcVal && tcVal > 0);
+            // CORREÇÃO: Usar a moeda explicitamente salva, não adivinhar pelo TC
+            const isUsd = (e.moneda === 'USD');
             const symbol = isUsd ? '$us' : 'Bs';
             const styleColor = isUsd ? 'color:#0f172a;' : 'color:var(--success);';
+            const tcDisplay = (parseFloat(e.tc) > 0) ? parseFloat(e.tc) : '-';
 
             html += `
               <tr>
@@ -4070,7 +4084,7 @@
                 <td>${safeStr(String(e.cuota))}</td>
                 <td>${safeStr(_tipoPagoLabel(e.tipo))}</td>
                 <td style="font-weight:900; ${styleColor}">${symbol} ${NF2.format(Number(e.monto) || 0)}</td>
-                <td>${safeStr(String(e.tc ?? ''))}</td>
+                <td>${tcDisplay}</td>
                 <td style="font-size:0.85rem; color:#64748b;">${safeStr(e.nota)}</td>
               </tr>
             `;
@@ -4081,8 +4095,9 @@
           document.getElementById('modal-reporte-pagos').classList.remove('hidden');
         };
 
+
         // ===== EXPORTAR PDF INDIVIDUAL (Cliente) =====
-        window.exportReporteClientePDF = (saleId) => {
+                window.exportReporteClientePDF = (saleId) => {
             try {
                 // 1. Buscar Dados
                 const v0 = vendas.find(x => x.$id === saleId);
@@ -4119,12 +4134,19 @@
                 const tableBody = entries.map(e => {
                     const val = Number(e.monto) || 0;
                     const tc = parseFloat(e.tc);
-                    if (tc && tc > 0) totalRefBs += val * tc;
-                    else totalRefBs += val;
+                    
+                    // Cálculo Ref Global
+                    if (e.moneda === 'USD') {
+                         const rate = (tc && tc > 0) ? tc : 6.96;
+                         totalRefBs += val * rate;
+                    } else {
+                         totalRefBs += val;
+                    }
 
-                    const isUsd = (tc && tc > 0);
+                    // CORREÇÃO: Usar moeda explícita
+                    const isUsd = (e.moneda === 'USD');
                     const symbol = isUsd ? '$us' : 'Bs';
-                    const labelTc = isUsd ? tc.toFixed(2) : '-';
+                    const labelTc = (tc && tc > 0) ? tc.toFixed(2) : '-';
                     const dataFmt = e.fecha ? new Date(e.fecha).toLocaleDateString('es-BO') : '-';
 
                     return [
