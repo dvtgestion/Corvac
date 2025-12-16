@@ -2530,24 +2530,32 @@
             if (re) re.value = today;
         }
 
-        document.getElementById('form-login').addEventListener('submit', async (e) => {
+                document.getElementById('form-login').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
+            const msgEl = document.getElementById('login-msg');
+            
+            msgEl.innerText = "Verificando...";
+
             try {
+                // 1. Tenta criar a sessão (Login)
                 await account.createEmailPasswordSession(email, pass);
                 checkSession();
             } catch (error) {
-                if (error.message && error.message.includes('session is active')) { checkSession(); return; }
-                try {
-                    await account.create(ID.unique(), email, pass);
-                    await account.createEmailPasswordSession(email, pass);
-                    checkSession();
-                } catch (ce) {
-                    document.getElementById('login-msg').innerText = "Error: " + (error.message || String(error));
+                console.error(error);
+
+                // Se já estiver logado, apenas atualiza
+                if (error.message && error.message.includes('session is active')) { 
+                    checkSession(); 
+                    return; 
                 }
+
+                // 2. Se der erro de credenciais, NÃO cria conta nova. Apenas bloqueia.
+                msgEl.innerText = "Acesso Negado: Usuário não autorizado ou senha incorreta.";
             }
         });
+
 
         window.logout = async () => { await account.deleteSession('current'); location.reload(); };
 
