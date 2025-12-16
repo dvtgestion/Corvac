@@ -1771,10 +1771,13 @@
         const db = new Databases(client);
         const storage = new Storage(client);
 
-        const DB_ID = 'db_main';
+                const DB_ID = 'db_main';
         const COL_TERRENOS = 'col_terrenos';
         const COL_VENDAS = 'col_vendas';
         const BUCKET_ID = 'bucket_fotos';
+        
+        // ADICIONE ESTA LINHA COM O ID QUE VOCÊ COPIOU DO APPWRITE:
+        const TEAM_ID = '693b9f5000216367d50d'; 
 
         let terrenos = [], vendas = [], user = null;
 
@@ -2490,14 +2493,22 @@
             return 6.96;
         }
 
-        function getPermissions() {
-            if (!user) return [];
+                function getPermissions() {
+            // Se não tiver usuário ou equipe configurada, retorna vazio (segurança)
+            if (!user || !TEAM_ID) return [];
+
+            // AGORA: Permissão para o TIME inteiro, não só para o usuário individual
             return [
+                Permission.read(Role.team(TEAM_ID)),
+                Permission.update(Role.team(TEAM_ID)),
+                Permission.delete(Role.team(TEAM_ID)),
+                // Opcional: Manter o usuário criador também, mas o time já cobre
                 Permission.read(Role.user(user.$id)),
                 Permission.update(Role.user(user.$id)),
-                Permission.delete(Role.user(user.$id))
+                Permission.delete(Role.user(user.$id)) 
             ];
         }
+
 
         async function checkSession() {
             try {
